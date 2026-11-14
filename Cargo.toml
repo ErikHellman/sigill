@@ -30,6 +30,8 @@ mail-builder = { version = "2", default-features = false }
 mail-auth = { version = "0.15", default-features = false }
 smtp-proto = { version = "0.2", default-features = false }
 mail-parser = { version = "1", default-features = false }
+quick-xml = { version = "0.41", default-features = false }
+miniz_oxide = { version = "0.9", default-features = false, features = ["with-alloc"] }
 hickory-resolver = { version = "0.26", default-features = false }
 rustls = { version = "0.23", default-features = false }
 tokio-rustls = { version = "0.26", default-features = false }

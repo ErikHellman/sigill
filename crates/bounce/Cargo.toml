@@ -11,6 +11,8 @@ rust-version.workspace = true
 sigill-core.workspace = true
 sigill-store.workspace = true
 mail-parser.workspace = true
+quick-xml.workspace = true
+miniz_oxide.workspace = true
 smtp-proto.workspace = true
 tokio = { workspace = true, features = ["net", "time", "sync", "io-util", "rt", "macros"] }
 tokio-util.workspace = true
@@ -26,3 +28,5 @@ sigill-mta.workspace = true
 uuid = { workspace = true, features = ["std", "v7"] }
 rcgen = { workspace = true, features = ["ring", "pem"] }
 tempfile.workspace = true
+miniz_oxide.workspace = true
+base64.workspace = true

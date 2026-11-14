@@ -27,6 +27,7 @@ pub struct Summary {
     pub hard_bounces: usize,
     pub soft_bounces: usize,
     pub complaints: usize,
+    pub dmarc_reports: usize,
 }
 
 #[derive(Clone)]
@@ -52,8 +53,7 @@ impl Processor {
                 }
                 Target::Verp(t) => self.bounce(t, &report, &mut summary).await?,
                 Target::Complaint => self.complaint(&report, None, &mut summary).await?,
-                // DMARC aggregate reports are ingested in M5.
-                Target::Dmarc => {}
+                Target::Dmarc => self.dmarc(raw, &mut summary).await?,
             }
         }
         Ok(summary)
@@ -117,6 +117,34 @@ impl Processor {
                     ("source", "dsn"),
                 ],
             );
+        }
+        Ok(())
+    }
+
+    async fn dmarc(&self, raw: &[u8], summary: &mut Summary) -> sigill_store::Result<()> {
+        for r in crate::dmarc::extract_reports(raw) {
+            let stored = self
+                .store
+                .insert_dmarc_report(&sigill_store::dmarc::NewDmarcReport {
+                    org_name: &r.org_name,
+                    report_id: &r.report_id,
+                    domain: &r.domain,
+                    date_begin: r.date_begin,
+                    date_end: r.date_end,
+                    policy: &r.policy,
+                    records: &r.records,
+                })
+                .await?;
+            if stored {
+                summary.dmarc_reports += 1;
+                let failed: i64 = r.records.iter().filter(|x| !x.passed()).map(|x| x.count).sum();
+                let total: i64 = r.records.iter().map(|x| x.count).sum();
+                info!(org = %r.org_name, domain = %r.domain, total, failed, "DMARC report stored");
+                telemetry::track(
+                    "dmarc_report",
+                    &[("domain", &r.domain), ("total", &total.to_string()), ("failed", &failed.to_string())],
+                );
+            }
         }
         Ok(())
     }

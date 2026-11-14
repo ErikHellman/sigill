@@ -1,6 +1,7 @@
 //! `sigill`: one binary for the API, delivery workers and bounce listener.
 
 mod commands;
+mod jobs;
 mod serve;
 mod telemetry;
 
@@ -61,6 +62,10 @@ fn cli() -> Command {
                         .arg(Arg::new("clear").long("clear").action(ArgAction::SetTrue)),
                 ),
         )
+        .subcommand(
+            Command::new("dns-check")
+                .about("Check PTR, SPF, DKIM, DMARC and MX records and print a pass/fail report"),
+        )
         .subcommand(Command::new("vaka-test").about("Send a test event to Vaka to verify error reporting"))
 }
 
@@ -98,6 +103,7 @@ fn main() -> anyhow::Result<()> {
                 commands::dkim_keygen(&config, m.get_one::<String>("domain").map(String::as_str))
             }
             Some(("app", m)) => commands::app(&config, m).await,
+            Some(("dns-check", _)) => commands::dns_check(&config).await,
             _ => unreachable!("subcommand required"),
         }
     });

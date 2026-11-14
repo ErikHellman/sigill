@@ -107,6 +107,8 @@ Choices made while building that refine or deviate from the sections above.
 - **Broadcast materialisation:** when a broadcast starts, the scheduler queues one message per audience member (consent for the list, segment match, not suppressed) with idempotency key `broadcast:<id>:<contact id>`, so resuming after a restart never sends twice. Member *i* gets `not_before = started_at + i × (1 h / broadcast.max_per_hour)`; the limit is per broadcast. Templates see `contact.{email,name,attributes}` plus the broadcast's variables, and every broadcast-stream message gets `unsubscribe_url`. Only draft or scheduled broadcasts can be cancelled.
 - **Unsubscribe:** `GET /u/{token}` shows a confirmation form and changes nothing (link scanners prefetch); `POST /u/{token}` (RFC 8058 one-click, and the form) suppresses the address with scope `broadcast`, revokes all its consents in the app and records an `unsubscribed` event once.
 - **Contacts** are stored with normalised addresses; `GET /v1/contacts?email=` looks one up.
+- **DMARC aggregate reports** arrive at `<bounce.dmarc_local_part>@<bounce domain>` (put that in the `rua=` tag). XML, gzip and zip attachments are read with `quick-xml` and `miniz_oxide` (a minimal gzip/zip reader instead of the `flate2` and `zip` crates, for build speed), capped at 32 MiB decompressed, and stored once per `(org_name, report_id)`.
+- **`sigill dns-check`** checks SPF on the return-path domain (that is the domain SPF evaluates), both DKIM selectors against the keys on disk, DMARC on the domain or its organizational domain (last two labels), the bounce domain's MX against `bounce.hostname`, and forward-confirmed PTR for every source IP. It exits non-zero on any failure and records `sending_domains.verified_at` for domains without failures.
 - **Telemetry goes through hooks in `sigill_core::telemetry`** (`track`, `capture_error`), installed by the binary with Vaka's functions, so library crates don't depend on `vaka-sdk`.
 
 ## Data model
@@ -272,8 +274,8 @@ Build in six milestones, each ending in something that runs and is tested. Claud
 ### M5: Operations
 
 - [ ] Admin UI: message search, event history, suppressions, queue view
-- [ ] `sigill dns-check` (PTR, SPF, DKIM, DMARC, MX) with a pass/fail report
-- [ ] DMARC aggregate report ingestion
+- [x] `sigill dns-check` (PTR, SPF, DKIM, DMARC, MX) with a pass/fail report
+- [x] DMARC aggregate report ingestion
 - [ ] Retention jobs with incremental vacuum; Vaka analytics events and alert rules for queue depth, bounce rate and defer spikes
 - [ ] Litestream replication to EU object storage, plus a tested restore onto a fresh host
 - [ ] Release builds keep `debug = "line-tables-only"`, or upload debug files with the `vaka` CLI if stripped

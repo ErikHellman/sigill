@@ -5,6 +5,7 @@ pub mod client;
 pub mod deliver;
 pub mod dispatcher;
 pub mod dns;
+pub mod dnscheck;
 pub mod mta_sts;
 pub mod pool;
 pub mod throttle;

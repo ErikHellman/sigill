@@ -80,3 +80,40 @@ pub async fn app(config: &Config, m: &ArgMatches) -> anyhow::Result<()> {
     store.close().await;
     Ok(())
 }
+
+pub async fn dns_check(config: &Config) -> anyhow::Result<()> {
+    use sigill_mta::dnscheck::{self, ExpectedDkim, Status};
+    let signers = sigill_render::Signers::load(&config.domains)
+        .context("loading DKIM keys (run `sigill dkim-keygen` first)")?;
+    let expected: Vec<ExpectedDkim> = config
+        .domains
+        .iter()
+        .filter_map(|d| {
+            let keys = signers.get(&d.name)?;
+            Some(ExpectedDkim { domain: d.name.to_ascii_lowercase(), records: keys.dns_records.clone() })
+        })
+        .collect();
+    let resolver = sigill_mta::dns::HickoryResolver::from_system().context("DNS resolver")?;
+    let checks = dnscheck::run(config, &expected, &resolver).await;
+    for c in &checks {
+        println!("{c}");
+    }
+    // Record domains whose checks all pass, for the admin DNS view.
+    if let Ok(store) = open(config).await {
+        for d in &config.domains {
+            let rp = d.return_path_domain.to_ascii_lowercase();
+            let name = d.name.to_ascii_lowercase();
+            let mine = checks.iter().filter(|c| c.name.contains(&name) || c.name == rp);
+            let ok = mine.clone().count() > 0 && mine.clone().all(|c| c.status != Status::Fail);
+            store.mark_domain_verified(&name, ok.then(sigill_core::now_ms)).await?;
+        }
+        store.close().await;
+    }
+    let failed = checks.iter().filter(|c| c.status == Status::Fail).count();
+    let warned = checks.iter().filter(|c| c.status == Status::Warn).count();
+    println!("\n{} checks: {} failed, {} warnings", checks.len(), failed, warned);
+    if failed > 0 {
+        bail!("{failed} DNS checks failed");
+    }
+    Ok(())
+}

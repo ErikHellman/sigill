@@ -238,7 +238,7 @@ async fn rejects_unknown_and_forged_recipients() {
             &forged,
             &format!("postmaster@{BOUNCE_DOMAIN}"),
             &good.replace(BOUNCE_DOMAIN, "evil.test"),
-            "dmarc@bounces.example.com",
+            "abuse@bounces.example.com",
         ],
         b"Subject: x\r\n\r\nx\r\n",
     )

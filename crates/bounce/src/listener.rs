@@ -1,7 +1,7 @@
 //! The receive-only SMTP server for bounces, complaints and DMARC reports.
 //!
-//! It accepts mail only for signed VERP return paths and the complaint (and, once enabled,
-//! DMARC) addresses of the bounce domains, rejects everything else at RCPT, and caps
+//! It accepts mail only for signed VERP return paths and the complaint and DMARC
+//! addresses of the bounce domains, rejects everything else at RCPT, and caps
 //! message size, recipients, line length, idle time and concurrent connections.
 
 use std::path::Path;
@@ -48,7 +48,7 @@ impl Settings {
             bounce_domains: bounce_domains.into_iter().map(|d| d.to_ascii_lowercase()).collect(),
             complaint_local_part: cfg.complaint_local_part.to_ascii_lowercase(),
             dmarc_local_part: cfg.dmarc_local_part.to_ascii_lowercase(),
-            accept_dmarc: false,
+            accept_dmarc: true,
             max_message_bytes: cfg.max_message_bytes,
             max_connections: cfg.max_connections,
             timeout: Duration::from_secs(120),
