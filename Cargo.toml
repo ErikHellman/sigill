@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ErikHellman/sigill"
-rust-version = "1.94"
+rust-version = "1.98"
 
 [workspace.dependencies]
 sigill-core = { path = "crates/core" }
@@ -64,3 +64,17 @@ debug = false
 
 [profile.release]
 debug = "line-tables-only"
+
+# RSA key generation and signing are painfully slow unoptimised; these build once.
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+
+[profile.dev.package.rsa]
+opt-level = 3
+
+# Argon2id API-key hashing takes ~1 s per verify unoptimised.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3

@@ -1,0 +1,5 @@
+---
+source: crates/render/src/template.rs
+expression: r.text
+---
+Hi <Ann>, go to https://x.test/c?a=1&b=2

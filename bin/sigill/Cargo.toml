@@ -10,11 +10,18 @@ rust-version.workspace = true
 [dependencies]
 sigill-core.workspace = true
 sigill-store.workspace = true
+sigill-render.workspace = true
 sigill-api.workspace = true
+sigill-mta.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
 tokio-util.workspace = true
+rustls = { workspace = true, features = ["ring"] }
 clap = { workspace = true, features = ["std", "help", "usage", "error-context", "env"] }
 anyhow.workspace = true
+serde_json = { workspace = true, features = ["std"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["fmt", "json", "std", "registry"] }
 vaka-sdk = { workspace = true, features = ["tracing"] }
+
+[dev-dependencies]
+sigill-testkit.workspace = true

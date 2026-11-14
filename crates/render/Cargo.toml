@@ -1,5 +1,6 @@
 [package]
 name = "sigill-render"
+description = "Sigill rendering: templates to MIME, DKIM signing"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +9,18 @@ rust-version.workspace = true
 
 [dependencies]
 sigill-core.workspace = true
+minijinja = { workspace = true, features = ["builtins", "serde"] }
+mrml = { workspace = true, features = ["parse", "render"] }
+mail-builder.workspace = true
+mail-auth = { workspace = true, features = ["rust-crypto", "generate", "dns-hickory"] }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true, features = ["std"] }
+thiserror.workspace = true
+rustls-pki-types = { version = "1", features = ["std"] }
+base64 = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+mail-auth = { workspace = true, features = ["rust-crypto", "generate", "dns-hickory"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tempfile.workspace = true
+insta.workspace = true

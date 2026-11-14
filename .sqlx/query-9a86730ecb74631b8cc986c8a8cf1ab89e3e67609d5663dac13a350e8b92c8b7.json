@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO ip_pools (name, ips, helo_hostname) VALUES (?, ?, ?)\n             ON CONFLICT (name) DO UPDATE SET ips = excluded.ips, helo_hostname = excluded.helo_hostname",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "9a86730ecb74631b8cc986c8a8cf1ab89e3e67609d5663dac13a350e8b92c8b7"
+}

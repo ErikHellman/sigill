@@ -8,11 +8,14 @@ use tracing_subscriber::prelude::*;
 
 /// Start Vaka (key, endpoint and environment from `VAKA_*` env vars; a no-op without a key).
 pub fn init_vaka() -> vaka_sdk::Guard {
-    vaka_sdk::init(vaka_sdk::Config {
+    let guard = vaka_sdk::init(vaka_sdk::Config {
         release: Some(env!("CARGO_PKG_VERSION").into()),
         debug: std::env::var_os("VAKA_DEBUG").is_some(),
         ..Default::default()
-    })
+    });
+    vaka_sdk::set_tag("service", "sigill");
+    sigill_core::telemetry::install(vaka_sdk::track, vaka_sdk::capture_error);
+    guard
 }
 
 /// JSON logs to stdout plus the Vaka layer. Filter with `SIGILL_LOG` (default `info`),

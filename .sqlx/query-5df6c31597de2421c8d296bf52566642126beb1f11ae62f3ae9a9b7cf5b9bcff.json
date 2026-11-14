@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO sending_domains (domain, stream, dkim_selector, dkim_public_keys, return_path_domain)\n                 VALUES (?, ?, ?, ?, ?)\n                 ON CONFLICT (domain) DO UPDATE SET stream = excluded.stream, dkim_selector = excluded.dkim_selector,\n                     dkim_public_keys = excluded.dkim_public_keys, return_path_domain = excluded.return_path_domain",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "5df6c31597de2421c8d296bf52566642126beb1f11ae62f3ae9a9b7cf5b9bcff"
+}

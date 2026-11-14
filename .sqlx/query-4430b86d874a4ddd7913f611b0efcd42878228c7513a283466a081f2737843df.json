@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT domain, stream, dkim_selector, dkim_public_keys, return_path_domain, verified_at\n             FROM sending_domains ORDER BY domain",
+  "describe": {
+    "columns": [
+      {
+        "name": "domain",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sending_domains",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "name": "stream",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sending_domains",
+            "name": "stream"
+          }
+        }
+      },
+      {
+        "name": "dkim_selector",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sending_domains",
+            "name": "dkim_selector"
+          }
+        }
+      },
+      {
+        "name": "dkim_public_keys",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sending_domains",
+            "name": "dkim_public_keys"
+          }
+        }
+      },
+      {
+        "name": "return_path_domain",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sending_domains",
+            "name": "return_path_domain"
+          }
+        }
+      },
+      {
+        "name": "verified_at",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "sending_domains",
+            "name": "verified_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "4430b86d874a4ddd7913f611b0efcd42878228c7513a283466a081f2737843df"
+}

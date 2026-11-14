@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE sending_domains SET verified_at = ? WHERE domain = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "1243b735136c6822f592ded3607f5713140d82c8c344c90e260f10f4c3825d99"
+}

@@ -5,6 +5,7 @@ pub mod config;
 pub mod reply;
 pub mod retry;
 pub mod secrets;
+pub mod telemetry;
 pub mod types;
 pub mod verp;
 

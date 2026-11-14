@@ -96,7 +96,12 @@ Choices made while building that refine or deviate from the sections above.
 - **Sending domains and IP pools come from the config file** and are mirrored into `sending_domains` and `ip_pools` at startup.
 - **Extra crates:** `crates/webhook` (webhook worker, keeps `reqwest` out of the API) and `crates/testkit` (fake SMTP server and test helpers).
 - **Timestamps** are unix milliseconds in `INTEGER` columns. `deliveries` also stores `stream` (denormalised from `messages`) so the dispatcher can claim per stream from one index.
-- **Workspace MSRV is Rust 1.94**, required by sqlx 0.9.
+- **Workspace MSRV is Rust 1.98**, required by mail-parser 1.0 (sqlx 0.9 needs 1.94).
+- **VERP has two forms.** A transaction with one recipient uses `b+d<delivery id>.<mac>@<bounce domain>`. When several recipients of one message share a transaction to the same MX, the return path is `b+m<message id>.<mac>@…` and the bounce is matched to a delivery by the DSN `Final-Recipient`. The MAC is a truncated HMAC-SHA256 with the derived VERP key.
+- **Broadcast through `POST /v1/messages` takes exactly one recipient**, so its `List-Unsubscribe` token can point at a single delivery. The `from` domain must be a configured domain whose stream matches.
+- **Rate-limit replies** (421 or 4.7.x mentioning rate) put the recipient domain into a 10-minute backoff in `domain_throttle.backoff_until`, and the dispatcher skips that domain while claiming.
+- **Opportunistic TLS accepts any certificate**, as other MTAs do. With an MTA-STS `enforce` policy only WebPKI-verified TLS to an allowed MX is used, never plain text.
+- **Telemetry goes through hooks in `sigill_core::telemetry`** (`track`, `capture_error`), installed by the binary with Vaka's functions, so library crates don't depend on `vaka-sdk`.
 
 ## Data model
 
@@ -232,24 +237,24 @@ Build in six milestones, each ending in something that runs and is tested. Claud
 
 ### M1: Send to a local sink
 
-- [ ] `POST /v1/messages` with API-key auth, validation and idempotency
-- [ ] Template upload and preview; rendering to multipart MIME
-- [ ] DKIM signing (RSA + Ed25519), verified in tests with `mail-auth`
-- [ ] Dispatcher and workers deliver to Mailpit through a configurable smarthost (dev only)
+- [x] `POST /v1/messages` with API-key auth, validation and idempotency
+- [x] Template upload and preview; rendering to multipart MIME
+- [x] DKIM signing (RSA + Ed25519), verified in tests with `mail-auth`
+- [x] Dispatcher and workers deliver to Mailpit through a configurable smarthost (dev only) — verified against the fake SMTP server as a smarthost (`smarthost_without_tls`); the build sandbox has no Docker, so run `docker compose up` and `sigill serve` with `delivery.mode = "smarthost"` once locally
 
 ### M2: Real MTA delivery
 
-- [ ] MX resolution, STARTTLS, MTA-STS, source-IP binding, EHLO name
-- [ ] Reply classification, retry schedule, per-domain throttling and backoff
-- [ ] Connection pooling; several recipients per transaction for the same MX
-- [ ] Integration test against the in-repo fake SMTP server with forced 4xx/5xx replies
+- [x] MX resolution, STARTTLS, MTA-STS, source-IP binding, EHLO name
+- [x] Reply classification, retry schedule, per-domain throttling and backoff
+- [x] Connection pooling; several recipients per transaction for the same MX
+- [x] Integration test against the in-repo fake SMTP server with forced 4xx/5xx replies
 - [ ] Manual check: mail to Gmail and Outlook test accounts shows `dkim=pass spf=pass dmarc=pass`
 
 ### M3: Bounces, complaints, suppression
 
-- [ ] VERP return paths with HMAC
+- [x] VERP return paths with HMAC
 - [ ] Bounce listener on port 25; DSN and ARF parsing with a fixture corpus of real bounces
-- [ ] Suppression list applied at the API and again just before delivery
+- [x] Suppression list applied at the API and again just before delivery
 - [ ] Webhook outbox with signed POSTs
 
 ### M4: Broadcast

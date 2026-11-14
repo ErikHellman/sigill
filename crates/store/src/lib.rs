@@ -21,6 +21,7 @@ pub mod events;
 pub mod messages;
 pub mod queue;
 pub mod retention;
+pub mod setup;
 pub mod suppressions;
 pub mod templates;
 pub mod throttle;

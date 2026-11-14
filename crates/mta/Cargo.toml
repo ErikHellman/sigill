@@ -1,5 +1,6 @@
 [package]
 name = "sigill-mta"
+description = "Sigill MTA: dispatcher, delivery workers, SMTP client, DNS, MTA-STS, throttling"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +9,20 @@ rust-version.workspace = true
 
 [dependencies]
 sigill-core.workspace = true
+sigill-store.workspace = true
+tokio = { workspace = true, features = ["net", "time", "sync", "io-util", "rt", "macros"] }
+tokio-util.workspace = true
+tokio-rustls = { workspace = true, features = ["ring", "tls12"] }
+rustls = { workspace = true, features = ["ring", "std", "tls12"] }
+webpki-roots.workspace = true
+hickory-resolver = { workspace = true, features = ["tokio", "system-config"] }
+reqwest = { workspace = true, features = ["rustls-no-provider"] }
+smtp-proto.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+uuid = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+sigill-testkit.workspace = true
+tokio-util.workspace = true
