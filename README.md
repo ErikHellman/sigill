@@ -5,8 +5,8 @@ transactional and broadcast mail, with its own MTA. It is written in Rust and st
 in a single SQLite file.
 
 > **Status:** milestones M0–M5 are implemented. What is left before production is listed
-> as unticked items in [PLAN.md](PLAN.md): choosing hosting and storage, a manual inbox check,
-> the restore drill on a real host, and Vaka alert rules.
+> as unticked items in [PLAN.md](PLAN.md): setting up the Hetzner server, a manual inbox check
+> and the restore drill on a real host. Vaka alert rules come later.
 
 ## What it does
 

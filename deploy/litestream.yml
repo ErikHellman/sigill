@@ -1,4 +1,4 @@
-# Continuous replication of the Sigill database to EU S3-compatible storage.
+# Continuous replication of the Sigill database to Hetzner Object Storage.
 # Install as /etc/litestream.yml. Credentials come from LITESTREAM_ACCESS_KEY_ID and
 # LITESTREAM_SECRET_ACCESS_KEY in /etc/sigill/litestream.env.
 dbs:
@@ -7,8 +7,9 @@ dbs:
       - type: s3
         bucket: sigill-backups            # replace
         path: sigill.db
-        endpoint: https://s3.eu-central-1.example-provider.com   # replace with the EU provider's endpoint
-        region: eu-central-1
+        # Bucket location: fsn1, nbg1 or hel1. Prefer a different one from the server's.
+        endpoint: https://fsn1.your-objectstorage.com
+        region: fsn1
         force-path-style: true
         sync-interval: 1s
         snapshot-interval: 24h

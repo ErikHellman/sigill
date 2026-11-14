@@ -3,9 +3,45 @@
 Operational procedures for one Sigill host. Commands assume the systemd layout in
 `deploy/` (`/etc/sigill/sigill.toml`, data in `/var/lib/sigill`).
 
+## Hetzner Cloud setup
+
+Sigill runs on its own Hetzner Cloud server (see Deployment in `PLAN.md`). Other apps go on a
+separate server.
+
+1. **Server.** Create a 2 vCPU / 4 GB server (for example CX32 or CAX21) in `hel1` with
+   Debian or Ubuntu, an SSH key and Backups enabled. Its primary IPv4 is the transactional IP.
+2. **Broadcast IP.** Create a floating IPv4 in the same location and assign it to the server.
+   Add it to the network interface permanently (Hetzner docs: "Floating IP persistent
+   configuration"), for example `/etc/netplan/60-floating-ip.yaml` with the address as `/32`
+   on `eth0`, then `netplan apply`. Sigill binds outgoing connections to it, so it must be on
+   the interface; check with `ip -4 addr show eth0`.
+3. **Port 25.** New accounts cannot send on ports 25 and 465. Once the first invoice is paid,
+   open a support request (Console, Support, "Sending mails") saying it is a transactional mail
+   server for your own apps with SPF, DKIM, DMARC and bounce handling. Test with
+   `nc -vz -w5 gmail-smtp-in.l.google.com 25` from the server.
+4. **Reverse DNS.** In the Console, set reverse DNS on the primary IP to the transactional
+   `helo_hostname` (for example `mta1.example.com`) and on the floating IP to the broadcast
+   one (`mta2.example.com`). Add matching A records. Do not add AAAA records for these names:
+   Sigill sends over IPv4 only.
+5. **Blocklists.** Check both IPs on Spamhaus (check.spamhaus.org) and UCEPROTECT before
+   warm-up. If one is listed, release it and create a new one rather than starting on a
+   dirty IP.
+6. **Firewall.** A Hetzner Cloud Firewall with inbound 22 (from your own IPs only), 25 (bounce
+   listener) and 80/443 (the reverse proxy for the API and `/admin`). Leave outbound open.
+7. **Backups bucket.** Create an Object Storage bucket, preferably in `fsn1` or `nbg1` so it is
+   not in the same location as the server, and an S3 credential for it. Set the endpoint and
+   region in `deploy/litestream.yml` (`https://<location>.your-objectstorage.com`) and put the
+   keys in `/etc/sigill/litestream.env` (mode 0600) as `LITESTREAM_ACCESS_KEY_ID` and
+   `LITESTREAM_SECRET_ACCESS_KEY`.
+8. **Reverse proxy.** Install Caddy with `mail-api.example.com { reverse_proxy 127.0.0.1:8080 }`
+   to get TLS for the API, unsubscribe links and the admin UI.
+
+Then continue with "First install".
+
 ## First install
 
-1. Check the provider checklist in `PLAN.md`: outbound 25 open, PTR editable, dedicated IPv4s.
+1. Complete "Hetzner Cloud setup": port 25 unblocked, reverse DNS set, both IPs on the
+   interface and not on blocklists.
 2. Install the binary to `/usr/local/bin/sigill`, Litestream to `/usr/local/bin/litestream`,
    and create the `sigill` user: `useradd --system --home /var/lib/sigill sigill`.
 3. Copy `deploy/sigill.example.toml` to `/etc/sigill/sigill.toml` and fill in domains, IPs and
@@ -80,8 +116,8 @@ stop matching. Only rotate when the key may have leaked.
 
 Health checks run every 15 minutes and log an error (which becomes a Vaka issue) when the
 queue backlog, the hourly bounce rate or one domain's deferrals cross the `[alerts]`
-thresholds. Vaka alert rules on the `sigill` project turn new and regressed issues into
-notifications.
+thresholds. Vaka alert rules that notify on these issues are not set up yet, so check the
+`sigill` project in Vaka until they are.
 
 - **Queue backlog:** check the queue page. Many deferred rows for one domain means that
   domain throttles us: lower its `max_per_minute` (`domain_throttle` table) and wait. Rows
@@ -101,8 +137,11 @@ Litestream replicates the database continuously. To restore onto a fresh host:
 2. `litestream restore -config /etc/litestream.yml -o /var/lib/sigill/sigill.db /var/lib/sigill/sigill.db`
 3. `chown sigill: /var/lib/sigill/sigill.db`, then `systemctl start litestream sigill`.
    Deliveries left in `sending` are put back in the queue on start.
-4. Move the sending IPs to the new host, or update PTR, SPF and the bounce MX for new IPs and
-   run `sigill dns-check`.
+4. Move the sending IPs to the new host: unassign the floating IP and assign it to the new
+   server (and add it to the interface). The primary IP can be moved too if the old server is
+   powered off and the IP is unassigned first; otherwise update PTR, SPF and the bounce MX for
+   the new IP and run `sigill dns-check`. A Hetzner server backup or snapshot is the quicker
+   path when the server itself is fine and only needs rolling back.
 
 Practice it: `scripts/restore-drill.sh` runs the whole cycle against a local file replica and
 checks that the restored database is intact and complete.

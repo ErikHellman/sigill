@@ -279,8 +279,8 @@ Build in six milestones, each ending in something that runs and is tested. Claud
 - [x] Admin UI: message search, event history, suppressions, queue view (plus DNS records to publish and DMARC reports)
 - [x] `sigill dns-check` (PTR, SPF, DKIM, DMARC, MX) with a pass/fail report
 - [x] DMARC aggregate report ingestion
-- [ ] Retention jobs with incremental vacuum; Vaka analytics events and alert rules for queue depth, bounce rate and defer spikes — retention (hourly), analytics events and the health checks are done: queue backlog, bounce rate and per-domain defer spikes log errors that become Vaka issues. Still needed: Vaka alert rules on the `sigill` project, which need a notification target (email, Slack or webhook)
-- [ ] Litestream replication to EU object storage, plus a tested restore onto a fresh host — `deploy/litestream.yml`, the systemd units and `scripts/restore-drill.sh` are in place; the drill could not run in the build sandbox (no Litestream binary), and the bucket waits on the open storage decision
+- [ ] Retention jobs with incremental vacuum; Vaka analytics events and alert rules for queue depth, bounce rate and defer spikes — retention (hourly), analytics events and the health checks are done: queue backlog, bounce rate and per-domain defer spikes log errors that become Vaka issues. Vaka alert rules on the `sigill` project are deferred (Erik, 2026-11-14: add them later); until then the health-check issues show up in Vaka without notifications
+- [ ] Litestream replication to EU object storage, plus a tested restore onto a fresh host — `deploy/litestream.yml`, the systemd units and `scripts/restore-drill.sh` are in place; the drill could not run in the build sandbox (no Litestream binary), and the bucket is Hetzner Object Storage (see Deployment)
 - [x] Release builds keep `debug = "line-tables-only"`, or upload debug files with the `vaka` CLI if stripped (checked: the release binary has `.debug_line`)
 - [x] Runbook: warm-up schedule, key rotation, blocklist response, restore from backup (`docs/runbook.md`)
 
@@ -299,7 +299,15 @@ Everything except real-world deliverability must be testable locally, with no ne
 
 ## Deployment requirements
 
-The hosting provider is still open. With SQLite the service runs on one EU-owned VPS or dedicated server that owns both sending IPs.
+**Hosting: Hetzner Cloud** (decided by Erik, 2026-11-14). With SQLite the service runs on one server that owns both sending IPs:
+
+- A dedicated mail server (2 vCPU / 4 GB, Helsinki `hel1`) that runs only Sigill and its reverse proxy. Erik's other apps go on a separate server, so their traffic and any compromise stay off the mail IPs.
+- The server's primary IPv4 sends transactional mail; a floating IPv4 assigned to the same server sends broadcast. Both get reverse DNS set in the Hetzner Console.
+- Litestream replicates to a Hetzner Object Storage bucket, ideally in another location (`fsn1` or `nbg1`) so one site outage does not take both; Hetzner server backups are on as a second layer.
+- Hetzner Cloud blocks outbound ports 25 and 465 on new accounts. Unblocking is a support request once the first invoice is paid.
+- Check both IPs against Spamhaus and UCEPROTECT before warm-up and ask Hetzner for a different IP if either is listed.
+
+Setup steps are in `docs/runbook.md` under "Hetzner Cloud setup".
 
 - **Artifacts:** a static Linux binary (musl) and a small container image; no provider SDKs.
 - **One process:** `sigill serve` runs the API, dispatcher, delivery workers and bounce listener next to the SQLite file. The API sits behind a reverse proxy for TLS on the same host.
@@ -307,13 +315,13 @@ The hosting provider is still open. With SQLite the service runs on one EU-owned
 - **State and backups:** one SQLite file on local SSD, replicated continuously by Litestream to EU S3-compatible storage. Recovery means restoring onto a new host and moving the IPs or updating DNS.
 - **Secrets:** DKIM private keys, API key pepper, webhook secrets and `VAKA_KEY` from env vars or files, never in the database in plain text.
 - **Infra as code:** systemd units for `sigill` and Litestream, plus a sample `docker-compose.prod.yml`.
-- **Provider checklist** (to fill in when choosing): outbound 25 allowed, PTR editable, at least 2 dedicated IPv4 on the same server, local SSD, clean IP range, EU-owned company.
+- **Provider checklist:** outbound 25 allowed, PTR editable, at least 2 dedicated IPv4 on the same server, local SSD, clean IP range, EU-owned company. Hetzner Cloud meets it: 25 after the unblock request, PTR in the Console, primary plus floating IPv4, local NVMe, IPs checked before warm-up, German company.
 
 ## Open decisions
 
-- [ ] Hosting provider and IPs (see the provider checklist above)
+- [x] Hosting provider and IPs: **Hetzner Cloud**, primary IPv4 for transactional and a floating IPv4 for broadcast on one dedicated mail server (decided by Erik, 2026-11-14). The specific IPs are known once the server is created.
 - [ ] Sending and bounce domains, and subdomain names for the two streams
-- [ ] EU object storage for Litestream backups
+- [x] EU object storage for Litestream backups: **Hetzner Object Storage**, part of the Hetzner layout Erik picked (2026-11-14)
 - [x] `mail-send` vs. `smtp-proto` for the SMTP client: **smtp-proto**, with our own client in `crates/mta` (decided by Erik, 2026-11-14). It gives per-recipient RCPT replies, source-IP binding, pooling and TLS policy directly, and the bounce listener needs smtp-proto anyway.
 - [ ] Open/click tracking: leave out, or add later behind a flag
 - [ ] When to move to Postgres: only if a second sending host or automatic failover becomes necessary
