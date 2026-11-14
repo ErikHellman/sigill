@@ -78,7 +78,7 @@ impl Store {
                  SELECT c.id FROM contacts c
                  JOIN messages m ON m.app_id = c.app_id
                  JOIN deliveries d ON d.message_id = m.id
-                 WHERE d.id = ? AND c.email = ?)",
+                 WHERE d.id = ? AND lower(c.email) = ?)",
             now,
             delivery_id,
             address
@@ -87,6 +87,54 @@ impl Store {
         .await?;
         tx.commit().await?;
         Ok(true)
+    }
+
+    /// One-click unsubscribe from a broadcast delivery: suppress the address for broadcast
+    /// mail, revoke its consents in the sending app and record an `unsubscribed` event (once).
+    /// Returns `None` when the delivery does not exist, else whether anything changed.
+    pub async fn record_unsubscribe(&self, delivery_id: &str) -> Result<Option<bool>> {
+        let now = now_ms();
+        let mut tx = self.write.begin().await?;
+        let Some(row) = sqlx::query!(
+            "SELECT d.rcpt, m.app_id FROM deliveries d JOIN messages m ON m.id = d.message_id WHERE d.id = ?",
+            delivery_id
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(None);
+        };
+        let seen = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "n!: i64" FROM delivery_events WHERE delivery_id = ? AND kind = 'unsubscribed'"#,
+            delivery_id
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if seen > 0 {
+            return Ok(Some(false));
+        }
+        let address = sigill_core::address::normalize(&row.rcpt).unwrap_or(row.rcpt);
+        suppressions::insert(
+            &mut tx,
+            &address,
+            SuppressionScope::Broadcast,
+            SuppressionReason::Unsubscribe,
+            Some(delivery_id),
+        )
+        .await?;
+        sqlx::query!(
+            "UPDATE consents SET revoked_at = ?
+             WHERE revoked_at IS NULL AND contact_id IN (
+                 SELECT id FROM contacts WHERE app_id = ? AND lower(email) = ?)",
+            now,
+            row.app_id,
+            address
+        )
+        .execute(&mut *tx)
+        .await?;
+        events::record(&mut tx, delivery_id, EventKind::Unsubscribed, None).await?;
+        tx.commit().await?;
+        Ok(Some(true))
     }
 }
 
@@ -131,5 +179,23 @@ mod tests {
         assert!(consents.iter().all(|c| c.revoked_at.is_some()));
         let kinds: Vec<_> = db.events_for_delivery("d1").await.unwrap().into_iter().map(|e| e.kind).collect();
         assert_eq!(kinds.last(), Some(&sigill_core::EventKind::Complained));
+    }
+
+    #[tokio::test]
+    async fn unsubscribe_is_broadcast_scoped_and_once() {
+        let db = test_db().await;
+        seed_app(&db, Some("https://hook.test")).await;
+        db.insert_message(&msg("m1", None), &[dl("d1", "A@x.com", false)]).await.unwrap();
+        let contact = db.create_contact("app", "A@x.com", None, &serde_json::json!({})).await.unwrap();
+        db.grant_consent(&contact.id, "news", "api").await.unwrap();
+
+        assert_eq!(db.record_unsubscribe("nope").await.unwrap(), None);
+        assert_eq!(db.record_unsubscribe("d1").await.unwrap(), Some(true));
+        assert_eq!(db.record_unsubscribe("d1").await.unwrap(), Some(false));
+        assert!(db.is_suppressed("a@x.com", Stream::Broadcast).await.unwrap());
+        assert!(!db.is_suppressed("a@x.com", Stream::Transactional).await.unwrap());
+        assert!(db.consents_for(&contact.id).await.unwrap().iter().all(|c| c.revoked_at.is_some()));
+        let hooks = db.due_webhooks(sigill_core::now_ms() + 1, 10).await.unwrap();
+        assert!(hooks.iter().any(|h| h.payload.contains("\"unsubscribed\"")));
     }
 }

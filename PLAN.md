@@ -104,6 +104,9 @@ Choices made while building that refine or deviate from the sections above.
 - **Asynchronous bounces** only change deliveries that are still `sent`, so a repeated bounce counts once. A permanent failure that is not a bad address (policy, full mailbox) is a soft bounce: the delivery becomes `bounced` and the address is counted towards the 5-in-30-days rule. `delayed` DSNs and auto-replies are accepted and ignored. Non-standard bounces are classified from the first enhanced status code in the text, else from well-known phrases.
 - **Complaints** suppress the address with scope `all` and revoke its consents in the sending app. The delivery is found from a VERP address in the report (envelope or the original's `Return-Path`), else from the original `Message-ID` (`<message id>@<from domain>`) plus `Original-Rcpt-To`, or the message's only delivery.
 - **Webhook signature:** `Sigill-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<body>")>`. Retries back off from 30 s, doubling up to 6 h, and the event is dropped after `webhooks.max_attempts`.
+- **Broadcast materialisation:** when a broadcast starts, the scheduler queues one message per audience member (consent for the list, segment match, not suppressed) with idempotency key `broadcast:<id>:<contact id>`, so resuming after a restart never sends twice. Member *i* gets `not_before = started_at + i × (1 h / broadcast.max_per_hour)`; the limit is per broadcast. Templates see `contact.{email,name,attributes}` plus the broadcast's variables, and every broadcast-stream message gets `unsubscribe_url`. Only draft or scheduled broadcasts can be cancelled.
+- **Unsubscribe:** `GET /u/{token}` shows a confirmation form and changes nothing (link scanners prefetch); `POST /u/{token}` (RFC 8058 one-click, and the form) suppresses the address with scope `broadcast`, revokes all its consents in the app and records an `unsubscribed` event once.
+- **Contacts** are stored with normalised addresses; `GET /v1/contacts?email=` looks one up.
 - **Telemetry goes through hooks in `sigill_core::telemetry`** (`track`, `capture_error`), installed by the binary with Vaka's functions, so library crates don't depend on `vaka-sdk`.
 
 ## Data model
@@ -262,9 +265,9 @@ Build in six milestones, each ending in something that runs and is tested. Claud
 
 ### M4: Broadcast
 
-- [ ] Contacts, consents, broadcasts API
-- [ ] Separate IP and subdomain; ramp-up limit per hour
-- [ ] RFC 8058 one-click unsubscribe endpoint and headers
+- [x] Contacts, consents, broadcasts API
+- [x] Separate IP and subdomain; ramp-up limit per hour
+- [x] RFC 8058 one-click unsubscribe endpoint and headers
 
 ### M5: Operations
 

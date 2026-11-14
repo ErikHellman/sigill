@@ -6,6 +6,8 @@ use axum::Router;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post, put};
+
+pub use broadcasts::Scheduler as BroadcastScheduler;
 use sigill_core::Config;
 use sigill_core::secrets::Secrets;
 use sigill_render::Signers;
@@ -14,6 +16,8 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 pub mod auth;
+pub mod broadcasts;
+pub mod contacts;
 pub mod error;
 pub mod messages;
 pub mod ratelimit;
@@ -71,6 +75,14 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/templates/{key}/preview", post(templates::preview))
         .route("/v1/suppressions", post(suppressions::create))
         .route("/v1/suppressions/{address}", get(suppressions::get).delete(suppressions::delete))
+        .route("/v1/contacts", post(contacts::create).get(contacts::list))
+        .route("/v1/contacts/{id}", get(contacts::get).patch(contacts::update).delete(contacts::delete))
+        .route("/v1/contacts/{id}/consents/{list}", put(contacts::grant).delete(contacts::revoke))
+        .route("/v1/broadcasts", post(broadcasts::create))
+        .route("/v1/broadcasts/{id}", get(broadcasts::get))
+        .route("/v1/broadcasts/{id}/send", post(broadcasts::send_broadcast))
+        .route("/v1/broadcasts/{id}/cancel", post(broadcasts::cancel))
+        .route("/u/{token}", get(unsubscribe::confirm_page).post(unsubscribe::unsubscribe))
         .with_state(state)
 }
 

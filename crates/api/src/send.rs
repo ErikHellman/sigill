@@ -112,9 +112,6 @@ pub async fn send(state: &AppState, req: SendRequest<'_>) -> ApiResult<SendOutco
         html: &req.template.html_tpl,
         text: &req.template.text_tpl,
     };
-    let rendered = sigill_render::render(&source, req.variables)?;
-    let message_id = new_id();
-    let to: Vec<String> = deliveries.iter().filter(|d| !d.suppressed).map(|d| d.rcpt.clone()).collect();
     let unsubscribe_url = (req.stream == Stream::Broadcast).then(|| {
         format!(
             "{}/u/{}",
@@ -122,6 +119,17 @@ pub async fn send(state: &AppState, req: SendRequest<'_>) -> ApiResult<SendOutco
             crate::unsubscribe::token(&state.inner.secrets.unsubscribe_key(), &deliveries[0].id)
         )
     });
+    // Broadcast templates can show the unsubscribe link as `{{ unsubscribe_url }}`.
+    let rendered = match (&unsubscribe_url, req.variables) {
+        (Some(url), serde_json::Value::Object(vars)) if !vars.contains_key("unsubscribe_url") => {
+            let mut vars = vars.clone();
+            vars.insert("unsubscribe_url".into(), url.clone().into());
+            sigill_render::render(&source, &serde_json::Value::Object(vars))?
+        }
+        _ => sigill_render::render(&source, req.variables)?,
+    };
+    let message_id = new_id();
+    let to: Vec<String> = deliveries.iter().filter(|d| !d.suppressed).map(|d| d.rcpt.clone()).collect();
     let to_header = if to.is_empty() { vec![deliveries[0].rcpt.clone()] } else { to };
     let mime = build_mime(&MimeParts {
         message_id: &message_id,

@@ -59,6 +59,7 @@ pub async fn serve(config: Config) -> anyhow::Result<()> {
     let mut tasks = tokio::task::JoinSet::new();
     tasks.spawn(Dispatcher::new(mta, wake).run(shutdown.clone()));
     tasks.spawn(webhooks.run(shutdown.clone()));
+    tasks.spawn(sigill_api::BroadcastScheduler::new(state.clone()).run(shutdown.clone()));
     if let Some((bounce, listener)) = bounce {
         tasks.spawn(bounce.run(listener, shutdown.clone()));
     }

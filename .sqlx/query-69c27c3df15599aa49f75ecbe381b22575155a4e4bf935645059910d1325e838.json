@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT d.rcpt, m.app_id FROM deliveries d JOIN messages m ON m.id = d.message_id WHERE d.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "rcpt",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "rcpt"
+          }
+        }
+      },
+      {
+        "name": "app_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "app_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "69c27c3df15599aa49f75ecbe381b22575155a4e4bf935645059910d1325e838"
+}

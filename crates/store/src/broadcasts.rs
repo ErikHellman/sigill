@@ -189,6 +189,19 @@ impl Store {
         rows.into_iter().map(Broadcast::try_from).collect()
     }
 
+    /// Broadcasts in `sending` (to resume materialising after a restart).
+    pub async fn sending_broadcasts(&self) -> Result<Vec<Broadcast>> {
+        let rows = sqlx::query_as!(
+            Row,
+            "SELECT id, app_id, name, template_key, template_version, list, from_addr, variables, segment_query,
+                    status, scheduled_at, started_at, finished_at, audience_count, sent_count, created_at
+             FROM broadcasts WHERE status = 'sending' ORDER BY started_at"
+        )
+        .fetch_all(&self.read)
+        .await?;
+        rows.into_iter().map(Broadcast::try_from).collect()
+    }
+
     /// Contacts with active consent for `list`, minus suppressed addresses.
     pub async fn broadcast_audience(&self, app_id: &str, list: &str) -> Result<Vec<AudienceMember>> {
         let rows = sqlx::query!(
