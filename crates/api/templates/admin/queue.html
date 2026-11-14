@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}
+{% block title %}Queue{% endblock %}
+{% block content %}
+<h2>Waiting deliveries</h2>
+<table>
+<tr><th>Stream</th><th>Status</th><th class="num">Count</th></tr>
+{% for c in counts %}
+<tr><td>{{ c.0 }}</td><td>{{ c.1 }}</td><td class="num">{{ c.2 }}</td></tr>
+{% else %}
+<tr><td colspan="3" class="muted">The queue is empty.</td></tr>
+{% endfor %}
+</table>
+<p>Next attempt due: <span class="mono">{{ next_due }}</span> · Webhook backlog: {{ webhook_backlog }}</p>
+<h2>Broadcasts sending</h2>
+<table>
+<tr><th>Name</th><th>List</th><th>Started</th><th class="num">Audience</th></tr>
+{% for b in broadcasts %}
+<tr><td>{{ b.0 }}</td><td>{{ b.1 }}</td><td class="mono">{{ b.2 }}</td><td class="num">{{ b.3 }}</td></tr>
+{% else %}
+<tr><td colspan="4" class="muted">None.</td></tr>
+{% endfor %}
+</table>
+<h2>Domain limits</h2>
+<table>
+<tr><th>Domain</th><th class="num">Connections</th><th class="num">Per minute</th><th>Backoff until</th></tr>
+{% for t in throttles %}
+<tr><td>{{ t.0 }}</td><td class="num">{{ t.1 }}</td><td class="num">{{ t.2 }}</td><td class="mono {% if !t.3.is_empty() %}warn{% endif %}">{{ t.3 }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

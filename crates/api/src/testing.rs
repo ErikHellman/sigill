@@ -24,6 +24,15 @@ impl TestApp {
     }
 
     pub async fn with_config(config: sigill_core::Config) -> Self {
+        Self::build(config, None).await
+    }
+
+    /// A test app with the admin UI enabled.
+    pub async fn with_admin(password: &str) -> Self {
+        Self::build(sigill_testkit::config(), Some(password.to_string())).await
+    }
+
+    async fn build(config: sigill_core::Config, admin_password: Option<String>) -> Self {
         let db = test_db().await;
         let secrets = sigill_testkit::secrets();
         let signers = sigill_render::Signers::load(&config.domains).unwrap();
@@ -32,7 +41,8 @@ impl TestApp {
         db.create_app(&app_id, "shop", &hash, Some("https://hooks.test/sigill"), Stream::Transactional)
             .await
             .unwrap();
-        let state = AppState::new(db.store.clone(), Arc::new(config), secrets, signers, Default::default());
+        let state = AppState::new(db.store.clone(), Arc::new(config), secrets, signers, Default::default())
+            .with_admin_password(admin_password);
         Self { db, state, key }
     }
 

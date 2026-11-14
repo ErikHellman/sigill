@@ -54,7 +54,16 @@ pub async fn serve(config: Config) -> anyhow::Result<()> {
     } else {
         None
     };
-    let state = sigill_api::AppState::new(store.clone(), config.clone(), secrets, signers, wake.clone());
+    let admin_password = sigill_core::secrets::read_secret(
+        "SIGILL_ADMIN_PASSWORD",
+        config.secrets.admin_password_file.as_deref(),
+    )
+    .context("reading admin password")?;
+    if admin_password.is_none() {
+        tracing::info!("admin UI disabled (set SIGILL_ADMIN_PASSWORD to enable it)");
+    }
+    let state = sigill_api::AppState::new(store.clone(), config.clone(), secrets, signers, wake.clone())
+        .with_admin_password(admin_password);
 
     let mut tasks = tokio::task::JoinSet::new();
     tasks.spawn(Dispatcher::new(mta, wake).run(shutdown.clone()));

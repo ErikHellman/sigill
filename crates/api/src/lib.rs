@@ -15,6 +15,7 @@ use sigill_store::Store;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
+pub mod admin;
 pub mod auth;
 pub mod broadcasts;
 pub mod contacts;
@@ -41,6 +42,8 @@ pub struct Inner {
     pub rate_limiter: ratelimit::RateLimiter,
     /// Wakes the dispatcher when new deliveries are queued.
     pub wake: Arc<Notify>,
+    /// Admin UI password; the admin UI is off without one.
+    pub admin_password: Option<String>,
 }
 
 impl AppState {
@@ -61,8 +64,19 @@ impl AppState {
                 key_cache: auth::KeyCache::default(),
                 rate_limiter,
                 wake,
+                admin_password: None,
             }),
         }
+    }
+
+    /// Enable the admin UI with this password. Call before the state is shared.
+    pub fn with_admin_password(mut self, password: Option<String>) -> Self {
+        let password = password.filter(|p| !p.is_empty());
+        match Arc::get_mut(&mut self.inner) {
+            Some(inner) => inner.admin_password = password,
+            None => panic!("with_admin_password must be called before the state is cloned"),
+        }
+        self
     }
 }
 
@@ -83,6 +97,7 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/broadcasts/{id}/send", post(broadcasts::send_broadcast))
         .route("/v1/broadcasts/{id}/cancel", post(broadcasts::cancel))
         .route("/u/{token}", get(unsubscribe::confirm_page).post(unsubscribe::unsubscribe))
+        .merge(admin::router())
         .with_state(state)
 }
 

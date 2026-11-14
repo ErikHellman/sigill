@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block title %}Message{% endblock %}
+{% block content %}
+<h2>{{ subject }}</h2>
+<table>
+<tr><th>Message id</th><td class="mono">{{ id }}</td></tr>
+<tr><th>Created</th><td>{{ created }}</td></tr>
+<tr><th>Stream</th><td>{{ stream }}</td></tr>
+<tr><th>From</th><td>{{ from }}</td></tr>
+<tr><th>Template</th><td>{{ template }}</td></tr>
+<tr><th>Idempotency key</th><td class="mono">{{ idempotency_key }}</td></tr>
+<tr><th>Broadcast</th><td class="mono">{{ broadcast_id }}</td></tr>
+<tr><th>Body kept</th><td>{% if has_body %}yes{% else %}no (retention){% endif %}</td></tr>
+</table>
+{% for d in deliveries %}
+<h3>{{ d.rcpt }} <span class="muted">· {{ d.status }} · {{ d.attempts }} attempts</span></h3>
+<p class="mono muted">{{ d.id }}{% if !d.last_response.is_empty() %} · last reply: {{ d.last_code }} {{ d.last_response }}{% endif %}</p>
+<table>
+<tr><th>At</th><th>Event</th><th>Detail</th></tr>
+{% for e in d.events %}
+<tr><td class="mono">{{ e.at }}</td><td>{{ e.kind }}</td><td class="mono">{{ e.detail }}</td></tr>
+{% endfor %}
+</table>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}Sigill{% endblock %} · Sigill admin</title>
+<style>
+:root { --fg:#1d1d1f; --muted:#6e6e73; --line:#d9d9de; --bg:#fff; --accent:#0b57d0; --bad:#b3261e; --ok:#146c2e; --warn:#8a5a00; }
+@media (prefers-color-scheme: dark) { :root { --fg:#ececf1; --muted:#a0a0a8; --line:#3a3a40; --bg:#17171a; --accent:#8ab4f8; --bad:#f28b82; --ok:#81c995; --warn:#fdd663; } }
+* { box-sizing: border-box; }
+body { margin:0; font:14px/1.45 system-ui, sans-serif; color:var(--fg); background:var(--bg); }
+header { display:flex; gap:1.25rem; align-items:center; padding:.75rem 1rem; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+header strong { margin-right:.5rem; }
+nav a { margin-right:1rem; color:var(--accent); text-decoration:none; }
+nav a.on { font-weight:600; text-decoration:underline; }
+main { padding:1rem; max-width:80rem; }
+table { border-collapse:collapse; width:100%; margin:.5rem 0 1.5rem; }
+th, td { text-align:left; padding:.35rem .5rem; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--muted); font-weight:500; }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+code, .mono { font-family:ui-monospace, monospace; font-size:12.5px; word-break:break-all; }
+.muted { color:var(--muted); }
+.bad { color:var(--bad); } .ok { color:var(--ok); } .warn { color:var(--warn); }
+form.inline { display:inline; }
+input, select, button { font:inherit; padding:.3rem .5rem; }
+.notice { padding:.5rem .75rem; border:1px solid var(--line); border-radius:6px; margin-bottom:1rem; }
+.wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<header><strong>Sigill</strong>
+<nav>
+<a href="/admin/messages" {% if nav == "messages" %}class="on"{% endif %}>Messages</a>
+<a href="/admin/queue" {% if nav == "queue" %}class="on"{% endif %}>Queue</a>
+<a href="/admin/suppressions" {% if nav == "suppressions" %}class="on"{% endif %}>Suppressions</a>
+<a href="/admin/dns" {% if nav == "dns" %}class="on"{% endif %}>DNS</a>
+<a href="/admin/dmarc" {% if nav == "dmarc" %}class="on"{% endif %}>DMARC</a>
+</nav></header>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

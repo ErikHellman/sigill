@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block title %}Suppressions{% endblock %}
+{% block content %}
+{% if let Some(n) = notice %}<p class="notice">{{ n }}</p>{% endif %}
+<form method="get" action="/admin/suppressions">
+<input type="search" name="q" value="{{ q }}" placeholder="address contains" size="32">
+<button type="submit">Filter</button>
+</form>
+<form method="post" action="/admin/suppressions" style="margin-top:.75rem">
+<input type="email" name="address" placeholder="address to suppress" required size="32">
+<select name="scope"><option value="all">all streams</option><option value="broadcast">broadcast only</option></select>
+<button type="submit">Add</button>
+</form>
+<div class="wrap"><table>
+<tr><th>Address</th><th>Scope</th><th>Reason</th><th>Since</th><th>Source delivery</th><th></th></tr>
+{% for s in rows %}
+<tr>
+<td class="mono">{{ s.address }}</td><td>{{ s.scope }}</td><td>{{ s.reason }}</td><td class="mono">{{ s.created }}</td>
+<td class="mono">{{ s.source }}</td>
+<td><form class="inline" method="post" action="/admin/suppressions/delete"><input type="hidden" name="address" value="{{ s.address }}"><button type="submit">Remove</button></form></td>
+</tr>
+{% else %}
+<tr><td colspan="6" class="muted">No suppressions.</td></tr>
+{% endfor %}
+</table></div>
+{% endblock %}

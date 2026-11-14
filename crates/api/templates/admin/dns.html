@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% block title %}DNS{% endblock %}
+{% block content %}
+<p class="muted">Run <code>sigill dns-check</code> to verify these records; it updates the verified column.</p>
+{% for d in domains %}
+<h2>{{ d.domain }} <span class="muted">· {{ d.stream }}</span></h2>
+<p>Return path / bounce domain: <code>{{ d.return_path }}</code> · Verified: {% if d.verified.is_empty() %}<span class="warn">not yet</span>{% else %}<span class="ok">{{ d.verified }}</span>{% endif %}</p>
+<div class="wrap"><table>
+<tr><th>Name</th><th>Type</th><th>Value</th></tr>
+{% for r in d.records %}
+<tr><td class="mono">{{ r.0 }}</td><td>{{ r.1 }}</td><td class="mono">{{ r.2 }}</td></tr>
+{% endfor %}
+</table></div>
+{% endfor %}
+<h2>Source IPs</h2>
+<table>
+<tr><th>Stream</th><th>IP</th><th>PTR must be</th></tr>
+{% for i in ips %}
+<tr><td>{{ i.0 }}</td><td class="mono">{{ i.1 }}</td><td class="mono">{{ i.2 }}</td></tr>
+{% else %}
+<tr><td colspan="3" class="muted">No source IPs configured.</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

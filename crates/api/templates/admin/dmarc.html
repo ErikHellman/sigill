@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% block title %}DMARC{% endblock %}
+{% block content %}
+<h2>Recent aggregate reports</h2>
+<div class="wrap"><table>
+<tr><th>Reporter</th><th>Domain</th><th>Period</th><th>Policy</th><th class="num">Messages</th><th class="num">Failing</th></tr>
+{% for r in reports %}
+<tr><td>{{ r.org }}</td><td>{{ r.domain }}</td><td class="mono">{{ r.period }}</td><td>{{ r.policy }}</td><td class="num">{{ r.total }}</td><td class="num {% if r.fail > 0 %}bad{% endif %}">{{ r.fail }}</td></tr>
+{% else %}
+<tr><td colspan="6" class="muted">No reports yet. Point your DMARC record's <code>rua=</code> at the dmarc address of a bounce domain.</td></tr>
+{% endfor %}
+</table></div>
+<h2>Failing sources</h2>
+<div class="wrap"><table>
+<tr><th>Reporter</th><th>Header from</th><th>Source IP</th><th class="num">Count</th><th>Disposition</th><th>DKIM</th><th>SPF</th></tr>
+{% for f in failures %}
+<tr><td>{{ f.org }}</td><td>{{ f.header_from }}</td><td class="mono">{{ f.ip }}</td><td class="num">{{ f.count }}</td><td>{{ f.disposition }}</td><td>{{ f.dkim }}</td><td>{{ f.spf }}</td></tr>
+{% else %}
+<tr><td colspan="7" class="muted">No failures reported.</td></tr>
+{% endfor %}
+</table></div>
+{% endblock %}

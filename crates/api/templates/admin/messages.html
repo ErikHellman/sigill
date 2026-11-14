@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% block title %}Messages{% endblock %}
+{% block content %}
+<form method="get" action="/admin/messages">
+<input type="search" name="q" value="{{ q }}" placeholder="message id, delivery id, idempotency key or recipient" size="48" autofocus>
+<button type="submit">Search</button>
+</form>
+<div class="wrap"><table>
+<tr><th>Created</th><th>App</th><th>Stream</th><th>Template</th><th>Subject</th><th class="num">Recipients</th><th class="num">Sent</th><th class="num">Pending</th><th class="num">Failed</th></tr>
+{% for m in rows %}
+<tr>
+<td class="mono"><a href="/admin/messages/{{ m.id }}">{{ m.created }}</a></td>
+<td>{{ m.app }}</td><td>{{ m.stream }}</td><td>{{ m.template }}</td><td>{{ m.subject }}</td>
+<td class="num">{{ m.recipients }}</td><td class="num ok">{{ m.sent }}</td><td class="num">{{ m.pending }}</td><td class="num bad">{{ m.failed }}</td>
+</tr>
+{% else %}
+<tr><td colspan="9" class="muted">No messages found.</td></tr>
+{% endfor %}
+</table></div>
+{% endblock %}
