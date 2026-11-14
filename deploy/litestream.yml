@@ -1,0 +1,15 @@
+# Continuous replication of the Sigill database to EU S3-compatible storage.
+# Install as /etc/litestream.yml. Credentials come from LITESTREAM_ACCESS_KEY_ID and
+# LITESTREAM_SECRET_ACCESS_KEY in /etc/sigill/litestream.env.
+dbs:
+  - path: /var/lib/sigill/sigill.db
+    replicas:
+      - type: s3
+        bucket: sigill-backups            # replace
+        path: sigill.db
+        endpoint: https://s3.eu-central-1.example-provider.com   # replace with the EU provider's endpoint
+        region: eu-central-1
+        force-path-style: true
+        sync-interval: 1s
+        snapshot-interval: 24h
+        retention: 168h                   # keep a week of snapshots and WAL

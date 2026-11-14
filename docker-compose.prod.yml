@@ -1,0 +1,29 @@
+# Sample production deployment on one host. Host networking is required: delivery workers
+# bind to the configured source IPs, and NAT would change them. The bounce listener needs
+# inbound port 25. Put a TLS reverse proxy (Caddy, nginx) in front of 127.0.0.1:8080.
+services:
+  sigill:
+    build: .
+    image: sigill:latest
+    network_mode: host
+    restart: unless-stopped
+    cap_add: [NET_BIND_SERVICE]
+    depends_on: [litestream]
+    command: ["--config", "/etc/sigill/sigill.toml", "serve"]
+    env_file: /etc/sigill/env              # VAKA_* and other overrides
+    volumes:
+      - /etc/sigill:/etc/sigill:ro         # sigill.toml, master.key, admin.password, dkim/
+      - sigill-data:/var/lib/sigill
+    stop_grace_period: 60s
+
+  litestream:
+    image: litestream/litestream:0.3.13
+    restart: unless-stopped
+    command: ["replicate", "-config", "/etc/litestream.yml"]
+    env_file: /etc/sigill/litestream.env   # LITESTREAM_ACCESS_KEY_ID / LITESTREAM_SECRET_ACCESS_KEY
+    volumes:
+      - ./deploy/litestream.yml:/etc/litestream.yml:ro
+      - sigill-data:/var/lib/sigill
+
+volumes:
+  sigill-data:

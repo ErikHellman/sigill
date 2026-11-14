@@ -106,7 +106,7 @@ async fn pages_render() {
     }
     let (_, body) = req(&t, Method::GET, "/admin/dns", Some("s3cret"), None, None).await;
     assert!(body.contains("t1r._domainkey.mail.example.com"));
-    assert!(body.contains("v=DMARC1; p=quarantine; rua=mailto:dmarc@bounces.example.com"));
+    assert!(body.contains("v=DMARC1; p=none; rua=mailto:dmarc@bounces.example.com"));
 }
 
 #[tokio::test]

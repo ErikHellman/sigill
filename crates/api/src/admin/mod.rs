@@ -413,10 +413,7 @@ async fn dns(_: Admin, State(state): State<AppState>) -> Response {
         records.push((
             format!("_dmarc.{name}"),
             "TXT",
-            format!(
-                "v=DMARC1; p=quarantine; rua=mailto:{}@{rp}; adkim=r; aspf=r",
-                cfg.bounce.dmarc_local_part
-            ),
+            format!("v=DMARC1; p=none; rua=mailto:{}@{rp}; adkim=r; aspf=r", cfg.bounce.dmarc_local_part),
         ));
         let verified = stored.iter().find(|s| s.domain == name).and_then(|s| s.verified_at);
         domains.push(DnsDomain {

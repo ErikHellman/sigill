@@ -1,0 +1,40 @@
+[Unit]
+Description=Sigill email service
+Documentation=https://github.com/ErikHellman/sigill
+After=network-online.target
+Wants=network-online.target
+# Litestream must be replicating before writes start.
+After=litestream.service
+Requires=litestream.service
+
+[Service]
+Type=exec
+User=sigill
+Group=sigill
+# serve applies pending migrations before starting.
+ExecStart=/usr/local/bin/sigill --config /etc/sigill/sigill.toml serve
+# VAKA_KEY, VAKA_ENDPOINT, VAKA_ENVIRONMENT (and optionally SIGILL_* overrides).
+EnvironmentFile=-/etc/sigill/env
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+KillSignal=SIGTERM
+# Port 25 for the bounce listener without running as root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+ReadWritePaths=/var/lib/sigill
+ReadOnlyPaths=/etc/sigill
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

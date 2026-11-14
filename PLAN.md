@@ -110,6 +110,8 @@ Choices made while building that refine or deviate from the sections above.
 - **DMARC aggregate reports** arrive at `<bounce.dmarc_local_part>@<bounce domain>` (put that in the `rua=` tag). XML, gzip and zip attachments are read with `quick-xml` and `miniz_oxide` (a minimal gzip/zip reader instead of the `flate2` and `zip` crates, for build speed), capped at 32 MiB decompressed, and stored once per `(org_name, report_id)`.
 - **`sigill dns-check`** checks SPF on the return-path domain (that is the domain SPF evaluates), both DKIM selectors against the keys on disk, DMARC on the domain or its organizational domain (last two labels), the bounce domain's MX against `bounce.hostname`, and forward-confirmed PTR for every source IP. It exits non-zero on any failure and records `sending_domains.verified_at` for domains without failures.
 - **Admin UI** lives under `/admin` on the API listener, behind HTTP basic auth with `SIGILL_ADMIN_PASSWORD` (any user name); without a password it answers 404. Form posts must be same-origin (`Sec-Fetch-Site`/`Origin`), since browsers resend basic-auth credentials. The DNS page lists the exact records to publish, built from the config and the DKIM keys on disk.
+- **Health alerts as Vaka issues.** Vaka alert rules trigger on issues, not metrics, so the maintenance job checks the queue backlog, the last hour's bounce rate and per-domain deferrals every 15 minutes against `[alerts]` thresholds and logs a fixed error message for each problem; the Vaka layer turns these into issues that `new_issue`/`regression`/`spike` rules can notify on.
+- **Deployment:** `Dockerfile` builds a static musl binary on Alpine; `docker-compose.prod.yml` uses host networking. `serve` applies migrations itself.
 - **Telemetry goes through hooks in `sigill_core::telemetry`** (`track`, `capture_error`), installed by the binary with Vaka's functions, so library crates don't depend on `vaka-sdk`.
 
 ## Data model
@@ -277,10 +279,10 @@ Build in six milestones, each ending in something that runs and is tested. Claud
 - [x] Admin UI: message search, event history, suppressions, queue view (plus DNS records to publish and DMARC reports)
 - [x] `sigill dns-check` (PTR, SPF, DKIM, DMARC, MX) with a pass/fail report
 - [x] DMARC aggregate report ingestion
-- [ ] Retention jobs with incremental vacuum; Vaka analytics events and alert rules for queue depth, bounce rate and defer spikes
-- [ ] Litestream replication to EU object storage, plus a tested restore onto a fresh host
-- [ ] Release builds keep `debug = "line-tables-only"`, or upload debug files with the `vaka` CLI if stripped
-- [ ] Runbook: warm-up schedule, key rotation, blocklist response, restore from backup
+- [ ] Retention jobs with incremental vacuum; Vaka analytics events and alert rules for queue depth, bounce rate and defer spikes — retention (hourly), analytics events and the health checks are done: queue backlog, bounce rate and per-domain defer spikes log errors that become Vaka issues. Still needed: Vaka alert rules on the `sigill` project, which need a notification target (email, Slack or webhook)
+- [ ] Litestream replication to EU object storage, plus a tested restore onto a fresh host — `deploy/litestream.yml`, the systemd units and `scripts/restore-drill.sh` are in place; the drill could not run in the build sandbox (no Litestream binary), and the bucket waits on the open storage decision
+- [x] Release builds keep `debug = "line-tables-only"`, or upload debug files with the `vaka` CLI if stripped (checked: the release binary has `.debug_line`)
+- [x] Runbook: warm-up schedule, key rotation, blocklist response, restore from backup (`docs/runbook.md`)
 
 ## Testing strategy
 

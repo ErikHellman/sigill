@@ -1,0 +1,33 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT d.rcpt_domain, COUNT(*) AS \"n!: i64\" FROM delivery_events e\n               JOIN deliveries d ON d.id = e.delivery_id\n               WHERE e.at >= ? AND e.kind = 'deferred'\n               GROUP BY d.rcpt_domain ORDER BY 2 DESC LIMIT 20",
+  "describe": {
+    "columns": [
+      {
+        "name": "rcpt_domain",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "rcpt_domain"
+          }
+        }
+      },
+      {
+        "name": "n!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "6e8dda3d09e59a95bbd231818cd34f791ad691624525d1fe91473d63d73dd794"
+}

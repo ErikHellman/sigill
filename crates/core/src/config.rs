@@ -26,6 +26,7 @@ pub struct Config {
     pub broadcast: BroadcastConfig,
     pub webhooks: WebhookConfig,
     pub retention: RetentionConfig,
+    pub alerts: AlertConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -266,6 +267,32 @@ pub struct RetentionConfig {
 impl Default for RetentionConfig {
     fn default() -> Self {
         Self { message_body_days: 30, event_days: 395 }
+    }
+}
+
+/// Health thresholds. Crossing one logs an error, which becomes a Vaka issue (and so an
+/// alert through the project's alert rules).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AlertConfig {
+    /// Waiting deliveries (all streams) above this count.
+    pub queue_backlog: i64,
+    /// Bounced share of finished deliveries in the last hour, in percent.
+    pub bounce_rate_percent: f64,
+    /// Minimum finished deliveries in the hour before the bounce rate is judged.
+    pub bounce_rate_min_sample: i64,
+    /// Deferrals to one recipient domain in the last hour.
+    pub defer_spike_per_domain: i64,
+}
+
+impl Default for AlertConfig {
+    fn default() -> Self {
+        Self {
+            queue_backlog: 5000,
+            bounce_rate_percent: 5.0,
+            bounce_rate_min_sample: 100,
+            defer_spike_per_domain: 200,
+        }
     }
 }
 

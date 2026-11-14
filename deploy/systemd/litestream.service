@@ -1,0 +1,22 @@
+[Unit]
+Description=Litestream replication for the Sigill database
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=sigill
+Group=sigill
+ExecStart=/usr/local/bin/litestream replicate -config /etc/litestream.yml
+# LITESTREAM_ACCESS_KEY_ID and LITESTREAM_SECRET_ACCESS_KEY for the bucket.
+EnvironmentFile=/etc/sigill/litestream.env
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/sigill
+
+[Install]
+WantedBy=multi-user.target

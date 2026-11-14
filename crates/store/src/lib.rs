@@ -19,6 +19,7 @@ pub mod contacts;
 pub mod dmarc;
 pub mod events;
 pub mod feedback;
+pub mod health;
 pub mod messages;
 pub mod queue;
 pub mod retention;

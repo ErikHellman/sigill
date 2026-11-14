@@ -1,0 +1,33 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT kind, COUNT(*) AS \"n!: i64\" FROM delivery_events\n               WHERE at >= ? AND kind IN ('sent', 'bounced') GROUP BY kind",
+  "describe": {
+    "columns": [
+      {
+        "name": "kind",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "delivery_events",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "name": "n!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "fc639fc2511f768633a3b56a1f2efbf4e8ff49021841962721bb308a76258bfd"
+}

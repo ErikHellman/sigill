@@ -4,8 +4,9 @@ Sigill (Swedish for *seal*, as in a wax seal on a letter) is a self-hosted email
 transactional and broadcast mail, with its own MTA. It is written in Rust and stores everything
 in a single SQLite file.
 
-> **Status:** under construction, milestone by milestone. See [PLAN.md](PLAN.md) for the
-> implementation plan and progress.
+> **Status:** milestones M0–M5 are implemented. What is left before production is listed
+> as unticked items in [PLAN.md](PLAN.md): choosing hosting and storage, a manual inbox check,
+> the restore drill on a real host, and Vaka alert rules.
 
 ## What it does
 
@@ -26,8 +27,22 @@ in a single SQLite file.
 
 - Rust on Tokio, with `axum` for the HTTP API
 - SQLite via `sqlx`, backed up continuously with Litestream
-- Stalwart's mail crates: `mail-auth`, `mail-builder`, `mail-parser`, `mail-send` / `smtp-proto`
+- Stalwart's mail crates: `mail-auth`, `mail-builder`, `mail-parser`, `smtp-proto`
 - One binary, `sigill serve`, runs the API, delivery workers and bounce listener in one process
+
+## Quick start (local)
+
+```sh
+docker compose up -d                       # Mailpit on :1025 / http://localhost:8025
+cp deploy/sigill.example.toml sigill.toml  # set delivery.mode = "smarthost", local paths
+export SIGILL_MASTER_KEY=$(head -c 48 /dev/urandom | base64)
+cargo run -- dkim-keygen
+cargo run -- app create --name myapp       # prints the API key
+cargo run -- serve
+```
+
+Then `PUT /v1/templates/{key}` and `POST /v1/messages` with `Authorization: Bearer <key>`.
+Operations are described in [docs/runbook.md](docs/runbook.md).
 
 ## Requirements for running it
 

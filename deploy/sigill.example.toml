@@ -1,0 +1,81 @@
+# Sigill configuration. Copy to /etc/sigill/sigill.toml and adjust.
+# Every key can also be set from the environment: SIGILL_<SECTION>__<KEY>, for example
+# SIGILL_DELIVERY__MODE=smarthost. Secrets never go in this file:
+#   SIGILL_MASTER_KEY      (or secrets.master_key_file)  at least 32 random bytes
+#   SIGILL_ADMIN_PASSWORD  (or secrets.admin_password_file)  enables /admin
+#   VAKA_KEY, VAKA_ENDPOINT, VAKA_ENVIRONMENT  error reporting and analytics
+
+[server]
+listen = "127.0.0.1:8080"          # behind a TLS reverse proxy on the same host
+public_url = "https://mail-api.example.com"   # used in unsubscribe links
+rate_limit_per_sec = 50
+
+[database]
+path = "/var/lib/sigill/sigill.db"  # local SSD; replicated by Litestream
+read_connections = 4
+
+[secrets]
+master_key_file = "/etc/sigill/master.key"
+admin_password_file = "/etc/sigill/admin.password"
+
+[delivery]
+mode = "mx"                         # "smarthost" sends everything to `smarthost` (dev: Mailpit)
+smarthost = "127.0.0.1:1025"
+max_retry_hours = 72
+mta_sts = true
+
+[streams.transactional]
+default_from = "noreply@mail.example.com"
+ips = ["203.0.113.10"]
+helo_hostname = "mta1.example.com"  # must equal the PTR record of the IP
+workers = 16
+priority = 0
+
+[streams.broadcast]
+default_from = "news@news.example.com"
+ips = ["203.0.113.11"]
+helo_hostname = "mta2.example.com"
+workers = 8
+priority = 10
+
+[[domains]]
+name = "mail.example.com"
+stream = "transactional"
+dkim_selector = "s2026"             # keys: <dir>/s2026r.pem (RSA) and s2026e.pem (Ed25519)
+dkim_key_dir = "/etc/sigill/dkim"
+return_path_domain = "bounces.example.com"
+
+[[domains]]
+name = "news.example.com"
+stream = "broadcast"
+dkim_selector = "s2026"
+dkim_key_dir = "/etc/sigill/dkim"
+return_path_domain = "bounces.example.com"
+
+[bounce]
+enabled = true
+listen = "0.0.0.0:25"
+hostname = "mx.example.com"         # the bounce domain's MX must point here
+max_message_bytes = 10485760
+max_connections = 50
+# tls_cert = "/etc/sigill/tls/fullchain.pem"
+# tls_key = "/etc/sigill/tls/privkey.pem"
+complaint_local_part = "fbl"        # register fbl@bounces.example.com with Yahoo CFL / Microsoft JMRP
+dmarc_local_part = "dmarc"          # rua=mailto:dmarc@bounces.example.com
+
+[broadcast]
+max_per_hour = 1000                 # ramp-up limit per broadcast
+
+[webhooks]
+max_attempts = 12
+timeout_secs = 10
+
+[retention]
+message_body_days = 30
+event_days = 395
+
+[alerts]
+queue_backlog = 5000
+bounce_rate_percent = 5.0
+bounce_rate_min_sample = 100
+defer_spike_per_domain = 200
