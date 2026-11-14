@@ -38,10 +38,30 @@ pub async fn serve(config: Config) -> anyhow::Result<()> {
     let resolver = Arc::new(HickoryResolver::from_system().context("DNS resolver")?);
     let fetcher = Arc::new(HttpsFetcher::new().context("HTTP client")?);
     let mta = Arc::new(Mta::new(store.clone(), config.clone(), resolver, fetcher, secrets.verp_key()));
+    let webhooks = sigill_webhook::WebhookWorker::new(store.clone(), secrets.clone(), &config.webhooks)
+        .context("webhook HTTP client")?;
+    let bounce = if config.bounce.enabled {
+        let tls = match (&config.bounce.tls_cert, &config.bounce.tls_key) {
+            (Some(cert), Some(key)) => Some(sigill_bounce::load_tls(cert, key).context("bounce TLS")?),
+            _ => None,
+        };
+        let listener = tokio::net::TcpListener::bind(config.bounce.listen)
+            .await
+            .with_context(|| format!("binding bounce listener on {}", config.bounce.listen))?;
+        let settings = sigill_bounce::Settings::new(&config.bounce, config.bounce_domains());
+        let processor = sigill_bounce::Processor::new(store.clone(), secrets.verp_key());
+        Some((sigill_bounce::Listener::new(settings, processor, secrets.verp_key(), tls), listener))
+    } else {
+        None
+    };
     let state = sigill_api::AppState::new(store.clone(), config.clone(), secrets, signers, wake.clone());
 
     let mut tasks = tokio::task::JoinSet::new();
     tasks.spawn(Dispatcher::new(mta, wake).run(shutdown.clone()));
+    tasks.spawn(webhooks.run(shutdown.clone()));
+    if let Some((bounce, listener)) = bounce {
+        tasks.spawn(bounce.run(listener, shutdown.clone()));
+    }
     {
         let shutdown = shutdown.clone();
         tasks.spawn(async move {

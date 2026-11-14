@@ -1,0 +1,51 @@
+Return-Path: <>
+From: MAILER-DAEMON@mx.example.net (Mail Delivery System)
+Subject: Undelivered Mail Returned to Sender
+To: {{VERP}}
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="7A1B2C3D4E.1700000000/mx.example.net"
+Message-Id: <20261113180200.7A1B2C3D4E@mx.example.net>
+
+This is a MIME-encapsulated message.
+
+--7A1B2C3D4E.1700000000/mx.example.net
+Content-Description: Notification
+Content-Type: text/plain; charset=us-ascii
+
+This is the mail system at host mx.example.net.
+
+I'm sorry to have to inform you that your message could not
+be delivered to one or more recipients.
+
+<{{RCPT}}>: host store.example.net[192.0.2.7] said: 552 5.2.2
+    Mailbox full (in reply to RCPT TO command)
+
+--7A1B2C3D4E.1700000000/mx.example.net
+Content-Description: Delivery report
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.example.net
+X-Postfix-Queue-ID: 7A1B2C3D4E
+X-Postfix-Sender: rfc822; {{VERP}}
+Arrival-Date: Fri, 13 Nov 2026 18:01:58 +0000 (UTC)
+
+Final-Recipient: rfc822; {{RCPT}}
+Original-Recipient: rfc822;{{RCPT}}
+Action: failed
+Status: 5.2.2
+Remote-MTA: dns; store.example.net
+Diagnostic-Code: smtp; 552 5.2.2 Mailbox full
+
+--7A1B2C3D4E.1700000000/mx.example.net
+Content-Description: Undelivered Message Headers
+Content-Type: text/rfc822-headers
+
+Return-Path: <{{VERP}}>
+From: Shop <noreply@mail.example.com>
+To: {{RCPT}}
+Message-ID: <{{MSGID}}>
+Subject: Your receipt
+
+--7A1B2C3D4E.1700000000/mx.example.net--

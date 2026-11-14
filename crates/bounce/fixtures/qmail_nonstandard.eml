@@ -1,0 +1,18 @@
+Return-Path: <>
+From: MAILER-DAEMON@old.example.com
+To: {{VERP}}
+Subject: failure notice
+Date: 13 Nov 2026 18:04:00 -0000
+
+Hi. This is the qmail-send program at old.example.com.
+I'm afraid I wasn't able to deliver your message to the following addresses.
+This is a permanent error; I've given up. Sorry it didn't work out.
+
+<{{RCPT}}>:
+Sorry, no mailbox here by that name. (#5.1.1)
+
+--- Below this line is a copy of the message.
+
+Return-Path: <{{VERP}}>
+Message-ID: <{{MSGID}}>
+Subject: Your receipt

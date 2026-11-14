@@ -1,0 +1,26 @@
+Return-path: <>
+From: Mail Delivery System <Mailer-Daemon@relay.example.org>
+To: {{VERP}}
+Subject: Mail delivery failed: returning message to sender
+Message-Id: <E1abcde-0001xy-AB@relay.example.org>
+Date: Fri, 13 Nov 2026 18:03:00 +0000
+
+This message was created automatically by mail delivery software.
+
+A message that you sent could not be delivered to one or more of its
+recipients. This is a permanent error. The following address(es) failed:
+
+  {{RCPT}}
+    host mx.example.org [198.51.100.4]
+    SMTP error from remote mail server after RCPT TO:<{{RCPT}}>:
+    550 5.1.1 <{{RCPT}}>: Recipient address rejected: User unknown in virtual mailbox table
+
+------ This is a copy of the message, including all the headers. ------
+
+Return-path: <{{VERP}}>
+From: Shop <noreply@mail.example.com>
+To: {{RCPT}}
+Message-ID: <{{MSGID}}>
+Subject: Your receipt
+
+Thanks for your order.

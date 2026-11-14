@@ -1,5 +1,6 @@
 [package]
 name = "sigill-bounce"
+description = "Sigill bounce listener: DSN and ARF parsing, suppression and complaint handling"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +9,20 @@ rust-version.workspace = true
 
 [dependencies]
 sigill-core.workspace = true
+sigill-store.workspace = true
+mail-parser.workspace = true
+smtp-proto.workspace = true
+tokio = { workspace = true, features = ["net", "time", "sync", "io-util", "rt", "macros"] }
+tokio-util.workspace = true
+tokio-rustls = { workspace = true, features = ["ring", "tls12"] }
+rustls = { workspace = true, features = ["ring", "std", "tls12"] }
+tracing.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+sigill-testkit.workspace = true
+sigill-mta.workspace = true
+uuid = { workspace = true, features = ["std", "v7"] }
+rcgen = { workspace = true, features = ["ring", "pem"] }
+tempfile.workspace = true

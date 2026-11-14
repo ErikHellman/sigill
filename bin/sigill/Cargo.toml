@@ -13,7 +13,9 @@ sigill-store.workspace = true
 sigill-render.workspace = true
 sigill-api.workspace = true
 sigill-mta.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
+sigill-bounce.workspace = true
+sigill-webhook.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "net"] }
 tokio-util.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 clap = { workspace = true, features = ["std", "help", "usage", "error-context", "env"] }

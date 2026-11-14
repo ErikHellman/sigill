@@ -1,5 +1,6 @@
 [package]
 name = "sigill-webhook"
+description = "Sigill webhook worker: signed POSTs from the outbox with retries"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +9,15 @@ rust-version.workspace = true
 
 [dependencies]
 sigill-core.workspace = true
+sigill-store.workspace = true
+reqwest = { workspace = true, features = ["rustls-no-provider"] }
+tokio = { workspace = true, features = ["time", "rt", "macros"] }
+tokio-util.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net"] }
+axum = { workspace = true, features = ["http1", "tokio"] }
+rustls = { workspace = true, features = ["ring"] }
+serde_json.workspace = true
+sigill-testkit.workspace = true

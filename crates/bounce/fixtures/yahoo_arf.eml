@@ -1,0 +1,42 @@
+From: feedback@arf.mail.yahoo.com
+To: fbl@bounces.example.com
+Subject: FW: Your receipt
+Date: Fri, 13 Nov 2026 19:00:00 +0000
+Message-ID: <arf-1234@arf.mail.yahoo.com>
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report; boundary="arf_boundary"
+
+--arf_boundary
+Content-Type: text/plain; charset="us-ascii"
+
+This is an email abuse report for an email message received from IP 203.0.113.10 on Fri, 13 Nov 2026 18:00:00 +0000.
+
+--arf_boundary
+Content-Type: message/feedback-report
+
+Feedback-Type: abuse
+User-Agent: Yahoo!-Mail-Feedback/2.0
+Version: 1
+Original-Mail-From: <{{VERP}}>
+Original-Rcpt-To: <{{RCPT}}>
+Received-Date: Fri, 13 Nov 2026 18:00:00 +0000
+Source-IP: 203.0.113.10
+Reported-Domain: mail.example.com
+Authentication-Results: mta1000.mail.ne1.yahoo.com; dkim=pass header.d=mail.example.com
+
+--arf_boundary
+Content-Type: message/rfc822
+
+Return-Path: <{{VERP}}>
+Received: from mail.example.com (EHLO mail.example.com) (203.0.113.10)
+  by mta1000.mail.ne1.yahoo.com with SMTPS; Fri, 13 Nov 2026 18:00:00 +0000
+From: Shop <noreply@mail.example.com>
+To: {{RCPT}}
+Subject: Your receipt
+Message-ID: <{{MSGID}}>
+MIME-Version: 1.0
+Content-Type: text/plain
+
+Thanks for your order.
+
+--arf_boundary--

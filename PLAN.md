@@ -101,6 +101,9 @@ Choices made while building that refine or deviate from the sections above.
 - **Broadcast through `POST /v1/messages` takes exactly one recipient**, so its `List-Unsubscribe` token can point at a single delivery. The `from` domain must be a configured domain whose stream matches.
 - **Rate-limit replies** (421 or 4.7.x mentioning rate) put the recipient domain into a 10-minute backoff in `domain_throttle.backoff_until`, and the dispatcher skips that domain while claiming.
 - **Opportunistic TLS accepts any certificate**, as other MTAs do. With an MTA-STS `enforce` policy only WebPKI-verified TLS to an allowed MX is used, never plain text.
+- **Asynchronous bounces** only change deliveries that are still `sent`, so a repeated bounce counts once. A permanent failure that is not a bad address (policy, full mailbox) is a soft bounce: the delivery becomes `bounced` and the address is counted towards the 5-in-30-days rule. `delayed` DSNs and auto-replies are accepted and ignored. Non-standard bounces are classified from the first enhanced status code in the text, else from well-known phrases.
+- **Complaints** suppress the address with scope `all` and revoke its consents in the sending app. The delivery is found from a VERP address in the report (envelope or the original's `Return-Path`), else from the original `Message-ID` (`<message id>@<from domain>`) plus `Original-Rcpt-To`, or the message's only delivery.
+- **Webhook signature:** `Sigill-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<body>")>`. Retries back off from 30 s, doubling up to 6 h, and the event is dropped after `webhooks.max_attempts`.
 - **Telemetry goes through hooks in `sigill_core::telemetry`** (`track`, `capture_error`), installed by the binary with Vaka's functions, so library crates don't depend on `vaka-sdk`.
 
 ## Data model
@@ -253,9 +256,9 @@ Build in six milestones, each ending in something that runs and is tested. Claud
 ### M3: Bounces, complaints, suppression
 
 - [x] VERP return paths with HMAC
-- [ ] Bounce listener on port 25; DSN and ARF parsing with a fixture corpus of real bounces
+- [x] Bounce listener on port 25; DSN and ARF parsing with a fixture corpus of real bounces
 - [x] Suppression list applied at the API and again just before delivery
-- [ ] Webhook outbox with signed POSTs
+- [x] Webhook outbox with signed POSTs
 
 ### M4: Broadcast
 

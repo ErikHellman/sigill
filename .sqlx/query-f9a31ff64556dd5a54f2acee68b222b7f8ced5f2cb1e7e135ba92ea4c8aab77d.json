@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE deliveries SET status = 'bounced', last_smtp_code = COALESCE(?, last_smtp_code),\n                    last_response = ?, updated_at = ?\n             WHERE id = ? AND status = 'sent'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "f9a31ff64556dd5a54f2acee68b222b7f8ced5f2cb1e7e135ba92ea4c8aab77d"
+}

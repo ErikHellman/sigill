@@ -2466,11 +2466,13 @@ dependencies = [
  "rustls",
  "serde_json",
  "sigill-api",
+ "sigill-bounce",
  "sigill-core",
  "sigill-mta",
  "sigill-render",
  "sigill-store",
  "sigill-testkit",
+ "sigill-webhook",
  "tokio",
  "tokio-util",
  "tracing",
@@ -2506,7 +2508,21 @@ dependencies = [
 name = "sigill-bounce"
 version = "0.1.0"
 dependencies = [
+ "mail-parser",
+ "rcgen",
+ "rustls",
  "sigill-core",
+ "sigill-mta",
+ "sigill-store",
+ "sigill-testkit",
+ "smtp-proto",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-rustls",
+ "tokio-util",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -2595,7 +2611,16 @@ dependencies = [
 name = "sigill-webhook"
 version = "0.1.0"
 dependencies = [
+ "axum",
+ "reqwest",
+ "rustls",
+ "serde_json",
  "sigill-core",
+ "sigill-store",
+ "sigill-testkit",
+ "tokio",
+ "tokio-util",
+ "tracing",
 ]
 
 [[package]]

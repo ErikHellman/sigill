@@ -1,0 +1,35 @@
+From: staff@hotmail.com
+To: fbl@bounces.example.com
+Subject: complaint about message from 203.0.113.10
+Date: Fri, 13 Nov 2026 19:10:00 -0800
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report; boundary="jmrp"
+
+--jmrp
+Content-Type: text/plain
+
+This is an email abuse report for an email message received from IP 203.0.113.10.
+
+--jmrp
+Content-Type: message/feedback-report
+
+Feedback-Type: abuse
+User-Agent: Microsoft JMRP
+Version: 1.0
+Removal-Recipient: redacted@hotmail.com
+
+--jmrp
+Content-Type: message/rfc822
+Content-Disposition: inline
+
+X-HmXmrOriginalRecipient: <redacted>
+From: Shop <noreply@mail.example.com>
+To: redacted@hotmail.com
+Subject: Your receipt
+Message-ID: <{{MSGID}}>
+MIME-Version: 1.0
+Content-Type: text/plain
+
+Thanks for your order.
+
+--jmrp--
