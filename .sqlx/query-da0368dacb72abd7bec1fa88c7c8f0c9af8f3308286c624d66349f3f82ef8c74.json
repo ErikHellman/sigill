@@ -1,0 +1,141 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, app_id, idempotency_key, stream, template_key, template_version, from_addr,\n                      subject, broadcast_id, created_at, rendered_mime IS NOT NULL AS \"has_body!: bool\"\n               FROM messages WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "app_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "app_id"
+          }
+        }
+      },
+      {
+        "name": "idempotency_key",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "idempotency_key"
+          }
+        }
+      },
+      {
+        "name": "stream",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "stream"
+          }
+        }
+      },
+      {
+        "name": "template_key",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "template_key"
+          }
+        }
+      },
+      {
+        "name": "template_version",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "template_version"
+          }
+        }
+      },
+      {
+        "name": "from_addr",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "from_addr"
+          }
+        }
+      },
+      {
+        "name": "subject",
+        "ordinal": 7,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "name": "broadcast_id",
+        "ordinal": 8,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "broadcast_id"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 9,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "name": "has_body!: bool",
+        "ordinal": 10,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "da0368dacb72abd7bec1fa88c7c8f0c9af8f3308286c624d66349f3f82ef8c74"
+}

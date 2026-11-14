@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT MIN(next_attempt_at) AS \"t: i64\" FROM deliveries WHERE status IN ('queued', 'deferred')",
+  "describe": {
+    "columns": [
+      {
+        "name": "t: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "3a593d2a3a5126b58fa7a0a8e302639de6a1a9f259d9691c63be11335404d313"
+}

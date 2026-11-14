@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT b.id FROM broadcasts b WHERE b.status = 'sending' AND NOT EXISTS (\n                 SELECT 1 FROM deliveries d JOIN messages m ON m.id = d.message_id\n                 WHERE m.broadcast_id = b.id AND d.status IN ('queued', 'sending', 'deferred'))",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "935987a1939c8872db9a2d817ebd3a1a52b3ed47fa43015f8f35811d68f19c27"
+}

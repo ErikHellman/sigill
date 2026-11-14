@@ -1,0 +1,206 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT r.id, r.org_name, r.report_id, r.domain, r.date_begin, r.date_end, r.policy, r.total_count,\n                    r.fail_count, r.received_at, x.source_ip, x.count, x.disposition, x.dkim_result, x.spf_result,\n                    x.header_from\n             FROM dmarc_records x JOIN dmarc_reports r ON r.id = x.report_id\n             WHERE x.dkim_result != 'pass' AND x.spf_result != 'pass'\n             ORDER BY r.date_end DESC LIMIT ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "org_name",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "org_name"
+          }
+        }
+      },
+      {
+        "name": "report_id",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "report_id"
+          }
+        }
+      },
+      {
+        "name": "domain",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "name": "date_begin",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "date_begin"
+          }
+        }
+      },
+      {
+        "name": "date_end",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "date_end"
+          }
+        }
+      },
+      {
+        "name": "policy",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "policy"
+          }
+        }
+      },
+      {
+        "name": "total_count",
+        "ordinal": 7,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "total_count"
+          }
+        }
+      },
+      {
+        "name": "fail_count",
+        "ordinal": 8,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "fail_count"
+          }
+        }
+      },
+      {
+        "name": "received_at",
+        "ordinal": 9,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "received_at"
+          }
+        }
+      },
+      {
+        "name": "source_ip",
+        "ordinal": 10,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_records",
+            "name": "source_ip"
+          }
+        }
+      },
+      {
+        "name": "count",
+        "ordinal": 11,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_records",
+            "name": "count"
+          }
+        }
+      },
+      {
+        "name": "disposition",
+        "ordinal": 12,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_records",
+            "name": "disposition"
+          }
+        }
+      },
+      {
+        "name": "dkim_result",
+        "ordinal": 13,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_records",
+            "name": "dkim_result"
+          }
+        }
+      },
+      {
+        "name": "spf_result",
+        "ordinal": 14,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_records",
+            "name": "spf_result"
+          }
+        }
+      },
+      {
+        "name": "header_from",
+        "ordinal": 15,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_records",
+            "name": "header_from"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "22e64d16743cc711e1f542c6abbbe55c12f3a329666fe618dad2cb489b41e255"
+}

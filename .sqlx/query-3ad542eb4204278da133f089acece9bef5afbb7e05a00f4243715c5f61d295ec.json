@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO consents (contact_id, list, granted_at, source, revoked_at) VALUES (?, ?, ?, ?, NULL)\n             ON CONFLICT (contact_id, list) DO UPDATE SET granted_at = excluded.granted_at,\n                 source = excluded.source, revoked_at = NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "3ad542eb4204278da133f089acece9bef5afbb7e05a00f4243715c5f61d295ec"
+}

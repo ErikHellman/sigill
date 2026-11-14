@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO webhook_outbox (app_id, payload, next_attempt_at, created_at)\n             SELECT a.id,\n                    json_object('id', last_insert_rowid(), 'event', ?, 'at', ?,\n                                'message_id', d.message_id, 'delivery_id', d.id,\n                                'recipient', d.rcpt, 'stream', d.stream, 'detail', ?,\n                                'broadcast_id', m.broadcast_id),\n                    ?, ?\n             FROM deliveries d\n             JOIN messages m ON m.id = d.message_id\n             JOIN apps a ON a.id = m.app_id\n             WHERE d.id = ? AND a.webhook_url IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "4175c27ae79eb31da2f37515264c5acbdf0d20821d8a87e7b4824f88a38832b5"
+}

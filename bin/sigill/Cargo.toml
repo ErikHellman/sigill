@@ -1,0 +1,20 @@
+[package]
+name = "sigill"
+description = "Sigill: self-hosted transactional and broadcast email service"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+sigill-core.workspace = true
+sigill-store.workspace = true
+sigill-api.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
+tokio-util.workspace = true
+clap = { workspace = true, features = ["std", "help", "usage", "error-context", "env"] }
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["fmt", "json", "std", "registry"] }
+vaka-sdk = { workspace = true, features = ["tracing"] }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE broadcasts SET status = 'scheduled', scheduled_at = ? WHERE app_id = ? AND id = ? AND status = 'draft'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "6ac990c2e8963ac2129a70c5d7cb5754532a5b031629845a6e83e204860ecbc3"
+}

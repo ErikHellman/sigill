@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO broadcasts (id, app_id, name, template_key, template_version, list, from_addr,\n                                     variables, segment_query, status, scheduled_at, created_at)\n             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 11
+    },
+    "nullable": []
+  },
+  "hash": "321f4d9e5228f2c5cc1296387c57f9572105d5839288a993ef185ad29f2df9d1"
+}

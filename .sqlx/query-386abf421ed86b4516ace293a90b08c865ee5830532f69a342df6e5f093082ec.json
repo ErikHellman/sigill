@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO soft_bounces (address, delivery_id, at) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "386abf421ed86b4516ace293a90b08c865ee5830532f69a342df6e5f093082ec"
+}

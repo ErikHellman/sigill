@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO domain_throttle (rcpt_domain, max_conns, max_per_minute, backoff_until)\n             VALUES (?, 10, 600, ?)\n             ON CONFLICT (rcpt_domain) DO UPDATE SET\n                 backoff_until = MAX(COALESCE(backoff_until, 0), excluded.backoff_until)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c053a48a257b19044522858fc0a7efa186de6cc3e3177184cb691eaaf2e6f414"
+}

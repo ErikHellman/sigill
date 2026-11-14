@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE broadcasts SET status = 'sending', started_at = ?, audience_count = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "a3d66a08a86fc469455aac582e9d14555b5fc6f526f84321bd8b9d893015e00c"
+}

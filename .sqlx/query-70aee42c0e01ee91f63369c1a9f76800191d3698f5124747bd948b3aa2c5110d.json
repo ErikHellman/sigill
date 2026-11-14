@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT rcpt_domain, max_conns, max_per_minute, backoff_until FROM domain_throttle ORDER BY rcpt_domain",
+  "describe": {
+    "columns": [
+      {
+        "name": "rcpt_domain",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "domain_throttle",
+            "name": "rcpt_domain"
+          }
+        }
+      },
+      {
+        "name": "max_conns",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "domain_throttle",
+            "name": "max_conns"
+          }
+        }
+      },
+      {
+        "name": "max_per_minute",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "domain_throttle",
+            "name": "max_per_minute"
+          }
+        }
+      },
+      {
+        "name": "backoff_until",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "domain_throttle",
+            "name": "backoff_until"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "70aee42c0e01ee91f63369c1a9f76800191d3698f5124747bd948b3aa2c5110d"
+}

@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT address, scope, reason, source_delivery_id, created_at FROM suppressions\n             WHERE address = ? ORDER BY scope",
+  "describe": {
+    "columns": [
+      {
+        "name": "address",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "suppressions",
+            "name": "address"
+          }
+        }
+      },
+      {
+        "name": "scope",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "suppressions",
+            "name": "scope"
+          }
+        }
+      },
+      {
+        "name": "reason",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "suppressions",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "name": "source_delivery_id",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "suppressions",
+            "name": "source_delivery_id"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "suppressions",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ad417b287d9bdca253910d2040df88ddeec59289dcef8d4e3a16f3902135a417"
+}

@@ -1,0 +1,33 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT d.status, COUNT(*) AS \"n!: i64\" FROM deliveries d JOIN messages m ON m.id = d.message_id\n               WHERE m.broadcast_id = ? GROUP BY d.status",
+  "describe": {
+    "columns": [
+      {
+        "name": "status",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "name": "n!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d705c8148566ea643fbd2bf21c7b54e930036dec63f4f19aaf6b7da0f556b7e0"
+}

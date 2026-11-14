@@ -1,0 +1,22 @@
+[package]
+name = "sigill-core"
+description = "Sigill domain types, configuration and shared logic"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive", "std"] }
+figment = { workspace = true, features = ["toml", "env"] }
+thiserror.workspace = true
+uuid = { workspace = true, features = ["v7", "std"] }
+hmac.workspace = true
+sha2.workspace = true
+base64 = { workspace = true, features = ["std"] }
+getrandom.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+figment = { workspace = true, features = ["toml", "env", "test"] }

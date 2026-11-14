@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE broadcasts SET status = 'cancelled' WHERE app_id = ? AND id = ? AND status IN ('draft', 'scheduled')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a94911cbe538d2dc684ac417bead86e2e574899002233eea87d39284f6fc3e4c"
+}

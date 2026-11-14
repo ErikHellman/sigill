@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT rcpt_domain, backoff_until AS \"backoff_until!: i64\" FROM domain_throttle\n               WHERE backoff_until > ? ORDER BY backoff_until DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "rcpt_domain",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "domain_throttle",
+            "name": "rcpt_domain"
+          }
+        }
+      },
+      {
+        "name": "backoff_until!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "domain_throttle",
+            "name": "backoff_until"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "09f662964915b0dbb17895380ea6b3d52d31571b4997808c7f85f16c9b008e0e"
+}

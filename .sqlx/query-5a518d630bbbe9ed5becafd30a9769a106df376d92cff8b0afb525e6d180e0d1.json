@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO suppressions (address, scope, reason, source_delivery_id, created_at)\n         VALUES (?, ?, ?, ?, ?) ON CONFLICT (address, scope) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "5a518d630bbbe9ed5becafd30a9769a106df376d92cff8b0afb525e6d180e0d1"
+}

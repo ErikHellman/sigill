@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE deliveries SET status = 'queued', updated_at = ? WHERE status = 'sending'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "43c86bdc98d9b08e6ad872a2540fe36a498b03b59fae47fe4ae2dd42a0c1058d"
+}

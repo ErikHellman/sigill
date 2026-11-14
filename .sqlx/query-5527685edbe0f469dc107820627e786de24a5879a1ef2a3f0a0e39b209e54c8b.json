@@ -1,0 +1,134 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, org_name, report_id, domain, date_begin, date_end, policy, total_count, fail_count, received_at\n             FROM dmarc_reports ORDER BY date_end DESC LIMIT ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "org_name",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "org_name"
+          }
+        }
+      },
+      {
+        "name": "report_id",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "report_id"
+          }
+        }
+      },
+      {
+        "name": "domain",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "name": "date_begin",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "date_begin"
+          }
+        }
+      },
+      {
+        "name": "date_end",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "date_end"
+          }
+        }
+      },
+      {
+        "name": "policy",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "policy"
+          }
+        }
+      },
+      {
+        "name": "total_count",
+        "ordinal": 7,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "total_count"
+          }
+        }
+      },
+      {
+        "name": "fail_count",
+        "ordinal": 8,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "fail_count"
+          }
+        }
+      },
+      {
+        "name": "received_at",
+        "ordinal": 9,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "dmarc_reports",
+            "name": "received_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5527685edbe0f469dc107820627e786de24a5879a1ef2a3f0a0e39b209e54c8b"
+}

@@ -4,8 +4,8 @@ Sigill (Swedish for *seal*, as in a wax seal on a letter) is a self-hosted email
 transactional and broadcast mail, with its own MTA. It is written in Rust and stores everything
 in a single SQLite file.
 
-> **Status:** planning. Nothing is implemented yet. See [PLAN.md](PLAN.md) for the
-> implementation plan and milestones.
+> **Status:** under construction, milestone by milestone. See [PLAN.md](PLAN.md) for the
+> implementation plan and progress.
 
 ## What it does
 

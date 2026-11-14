@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE messages SET rendered_mime = NULL\n             WHERE rendered_mime IS NOT NULL AND created_at < ?\n               AND NOT EXISTS (SELECT 1 FROM deliveries d WHERE d.message_id = messages.id\n                               AND d.status IN ('queued', 'sending', 'deferred'))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "12d2c13974cf53e862901274a165ef6a5402eb1ff4252221ae4069b7c8800bf7"
+}

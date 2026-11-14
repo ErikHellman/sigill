@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT contact_id, list, granted_at, source, revoked_at FROM consents WHERE contact_id = ? ORDER BY list",
+  "describe": {
+    "columns": [
+      {
+        "name": "contact_id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "contact_id"
+          }
+        }
+      },
+      {
+        "name": "list",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "list"
+          }
+        }
+      },
+      {
+        "name": "granted_at",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "granted_at"
+          }
+        }
+      },
+      {
+        "name": "source",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "name": "revoked_at",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "revoked_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "44788ca8f72340604f8dc6f6170308f698a2c163c4cc28ae10f43c6ce1408b7e"
+}

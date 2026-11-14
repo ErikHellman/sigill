@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, delivery_id, kind, detail, at FROM delivery_events\n             WHERE delivery_id = ? ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "delivery_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "delivery_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "delivery_events",
+            "name": "delivery_id"
+          }
+        }
+      },
+      {
+        "name": "kind",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "delivery_events",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "name": "detail",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "delivery_events",
+            "name": "detail"
+          }
+        }
+      },
+      {
+        "name": "at",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "delivery_events",
+            "name": "at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "e72c3ee943d905ce0be908212cefa65eabd63516690ae04dce64fde844bef586"
+}

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE broadcasts SET status = 'finished', finished_at = ?, sent_count = ? WHERE id = ? RETURNING app_id",
+  "describe": {
+    "columns": [
+      {
+        "name": "app_id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "app_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f163ddcd2c987e16eaa6fdc8fae88925014d6d43a1ea594d498e936a997c793c"
+}

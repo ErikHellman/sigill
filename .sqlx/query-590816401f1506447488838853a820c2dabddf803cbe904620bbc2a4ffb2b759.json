@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO dmarc_reports (id, org_name, report_id, domain, date_begin, date_end, policy,\n                                        total_count, fail_count, received_at)\n             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (org_name, report_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "590816401f1506447488838853a820c2dabddf803cbe904620bbc2a4ffb2b759"
+}

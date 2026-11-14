@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM soft_bounces WHERE address = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "653a4153c1b3b083e1a2547c5faaa00b59ab34d7445aa2efeffde8c4ecd9d700"
+}

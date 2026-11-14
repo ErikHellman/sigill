@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO dmarc_records (report_id, source_ip, count, disposition, dkim_result, spf_result, header_from)\n                 VALUES (?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "e8ccca33e9762904e6663a13bb8e04c8d1b32922e434e0e31edce98f5cf50afd"
+}

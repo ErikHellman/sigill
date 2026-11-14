@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM suppressions WHERE address = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "f63e9eb7d6f36863e97c578a02f1fd13ed8ab18b5161ca74eac9f56575047420"
+}

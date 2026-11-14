@@ -1,0 +1,206 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, app_id, name, template_key, template_version, list, from_addr, variables, segment_query,\n                    status, scheduled_at, started_at, finished_at, audience_count, sent_count, created_at\n             FROM broadcasts WHERE app_id = ? AND id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "app_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "app_id"
+          }
+        }
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "template_key",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "template_key"
+          }
+        }
+      },
+      {
+        "name": "template_version",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "template_version"
+          }
+        }
+      },
+      {
+        "name": "list",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "list"
+          }
+        }
+      },
+      {
+        "name": "from_addr",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "from_addr"
+          }
+        }
+      },
+      {
+        "name": "variables",
+        "ordinal": 7,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "variables"
+          }
+        }
+      },
+      {
+        "name": "segment_query",
+        "ordinal": 8,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "segment_query"
+          }
+        }
+      },
+      {
+        "name": "status",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "name": "scheduled_at",
+        "ordinal": 10,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "scheduled_at"
+          }
+        }
+      },
+      {
+        "name": "started_at",
+        "ordinal": 11,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "name": "finished_at",
+        "ordinal": 12,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "finished_at"
+          }
+        }
+      },
+      {
+        "name": "audience_count",
+        "ordinal": 13,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "audience_count"
+          }
+        }
+      },
+      {
+        "name": "sent_count",
+        "ordinal": 14,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "sent_count"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 15,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "broadcasts",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8b3d9661079a18938c4a8369962462d50019186ca677872a13c4c6ca58707854"
+}

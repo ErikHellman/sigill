@@ -87,6 +87,17 @@ One Cargo workspace, async on Tokio, SQLite compiled into the binary. Fast incre
 - Cache `target/` and `~/.cargo` in CI (for example `Swatinem/rust-cache`).
 - Targets: incremental `cargo check` under 5 s, incremental `cargo build` under 15 s, CI build with a warm cache under 3 minutes.
 
+## Implementation decisions
+
+Choices made while building that refine or deviate from the sections above.
+
+- **Secrets from one master key.** `SIGILL_MASTER_KEY` (or `secrets.master_key_file`) is the only stored secret besides DKIM keys and the admin password. The API key pepper, the VERP HMAC key, the unsubscribe-token key and each app's webhook signing secret are derived from it with HMAC-SHA256 and a label, so `apps` has no `webhook_secret` column and nothing secret is in the database.
+- **DKIM private keys are PEM files on disk** (`<dkim_key_dir>/<selector>r.pem` for RSA and `<selector>e.pem` for Ed25519, written by `sigill dkim-keygen`). `sending_domains` holds only public keys, so no key encryption scheme is needed.
+- **Sending domains and IP pools come from the config file** and are mirrored into `sending_domains` and `ip_pools` at startup.
+- **Extra crates:** `crates/webhook` (webhook worker, keeps `reqwest` out of the API) and `crates/testkit` (fake SMTP server and test helpers).
+- **Timestamps** are unix milliseconds in `INTEGER` columns. `deliveries` also stores `stream` (denormalised from `messages`) so the dispatcher can claim per stream from one index.
+- **Workspace MSRV is Rust 1.94**, required by sqlx 0.9.
+
 ## Data model
 
 One SQLite file holds everything, including the queue. Tables use `STRICT` mode; IDs are UUIDv7 stored as text; JSON goes in text columns. Each message has one row per recipient, so every recipient is retried and tracked on its own.
@@ -213,11 +224,11 @@ Build in six milestones, each ending in something that runs and is tested. Claud
 
 ### M0: Skeleton
 
-- [ ] Cargo workspace with the crates above, `.cargo/config.toml` with the mold linker, CI (fmt, clippy `-D warnings`, nextest) with caching, `docker-compose` with Mailpit
-- [ ] Config loading, tracing and `/healthz`
-- [ ] Vaka: create a `rust` project for the service, add `vaka-sdk` with the tracing layer, and verify with `vaka send-test-event`
-- [ ] SQLite setup: pragmas, writer and read pools, embedded sqlx migrations for all tables, offline mode; `sigill migrate` works
-- [ ] Build-speed targets met and checked in CI
+- [x] Cargo workspace with the crates above, `.cargo/config.toml` with the mold linker, CI (fmt, clippy `-D warnings`, nextest) with caching, `docker-compose` with Mailpit
+- [x] Config loading, tracing and `/healthz`
+- [ ] Vaka: create a `rust` project for the service, add `vaka-sdk` with the tracing layer, and verify with `vaka send-test-event` — project `sigill` created and the SDK wired in; `sigill vaka-test` sends a test event, but the build sandbox has no DNS, so delivery still needs one run from a real host (`VAKA_KEY=… VAKA_ENDPOINT=https://vaka.fly.dev sigill vaka-test`)
+- [x] SQLite setup: pragmas, writer and read pools, embedded sqlx migrations for all tables, offline mode; `sigill migrate` works
+- [x] Build-speed targets met and checked in CI (`scripts/build-speed.sh`; locally ~0.4 s incremental check, ~1.2 s incremental build)
 
 ### M1: Send to a local sink
 
@@ -287,6 +298,6 @@ The hosting provider is still open. With SQLite the service runs on one EU-owned
 - [ ] Hosting provider and IPs (see the provider checklist above)
 - [ ] Sending and bounce domains, and subdomain names for the two streams
 - [ ] EU object storage for Litestream backups
-- [ ] `mail-send` vs. `smtp-proto` for the SMTP client (decide after a spike in M2)
+- [x] `mail-send` vs. `smtp-proto` for the SMTP client: **smtp-proto**, with our own client in `crates/mta` (decided by Erik, 2026-11-14). It gives per-recipient RCPT replies, source-IP binding, pooling and TLS policy directly, and the bounce listener needs smtp-proto anyway.
 - [ ] Open/click tracking: leave out, or add later behind a flag
 - [ ] When to move to Postgres: only if a second sending host or automatic failover becomes necessary

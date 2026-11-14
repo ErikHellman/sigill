@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE contacts SET name = COALESCE(?, name), attributes = COALESCE(?, attributes), updated_at = ?\n             WHERE app_id = ? AND id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "8db989dc61ec94faaecadff8c8d8003188c2f62ae19a001a5f552e5bc2ba2708"
+}

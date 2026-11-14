@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE consents SET revoked_at = ? WHERE contact_id = ? AND list = ? AND revoked_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "fd053512a7866c7fe30151195ecf081886fbef2f4e5d907b5b091a75f51976a5"
+}

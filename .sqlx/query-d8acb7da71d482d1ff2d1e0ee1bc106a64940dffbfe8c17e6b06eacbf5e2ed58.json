@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE webhook_outbox SET attempts = attempts + 1, next_attempt_at = ?, last_error = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "d8acb7da71d482d1ff2d1e0ee1bc106a64940dffbfe8c17e6b06eacbf5e2ed58"
+}

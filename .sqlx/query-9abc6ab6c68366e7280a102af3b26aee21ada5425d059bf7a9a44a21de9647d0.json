@@ -1,0 +1,45 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT stream, status, COUNT(*) AS \"n!: i64\" FROM deliveries\n               WHERE status IN ('queued', 'sending', 'deferred') GROUP BY stream, status",
+  "describe": {
+    "columns": [
+      {
+        "name": "stream",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "stream"
+          }
+        }
+      },
+      {
+        "name": "status",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "name": "n!: i64",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9abc6ab6c68366e7280a102af3b26aee21ada5425d059bf7a9a44a21de9647d0"
+}

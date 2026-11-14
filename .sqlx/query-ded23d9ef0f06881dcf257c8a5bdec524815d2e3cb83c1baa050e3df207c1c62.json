@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT rendered_mime FROM messages WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "rendered_mime",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "rendered_mime"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "ded23d9ef0f06881dcf257c8a5bdec524815d2e3cb83c1baa050e3df207c1c62"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO deliveries (id, message_id, stream, rcpt, rcpt_domain, status, attempts,\n                                         next_attempt_at, priority, created_at, updated_at)\n                 VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "9915a7cadfef6fcc80e69453a13275a1b31aef2d1b9c04245abd2d141c785067"
+}

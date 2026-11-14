@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE deliveries SET status = 'sending', updated_at = ?1\n               WHERE id IN (\n                   SELECT id FROM deliveries\n                   WHERE status IN ('queued', 'deferred') AND next_attempt_at <= ?1 AND stream = ?2\n                     AND rcpt_domain NOT IN (\n                         SELECT rcpt_domain FROM domain_throttle WHERE backoff_until > ?1)\n                   ORDER BY priority, next_attempt_at\n                   LIMIT ?3)\n               RETURNING id AS \"id!\", message_id AS \"message_id!\", stream AS \"stream!\", rcpt AS \"rcpt!\",\n                         rcpt_domain AS \"rcpt_domain!\", attempts AS \"attempts!\", created_at AS \"created_at!\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "message_id!",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "message_id"
+          }
+        }
+      },
+      {
+        "name": "stream!",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "stream"
+          }
+        }
+      },
+      {
+        "name": "rcpt!",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "rcpt"
+          }
+        }
+      },
+      {
+        "name": "rcpt_domain!",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "rcpt_domain"
+          }
+        }
+      },
+      {
+        "name": "attempts!",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "deliveries",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c04aa99d09c266a68304e68fd52bce06c43f768df6fde3f54676ef4faf932945"
+}

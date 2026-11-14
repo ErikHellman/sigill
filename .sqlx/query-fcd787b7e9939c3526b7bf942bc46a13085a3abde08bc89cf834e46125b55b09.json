@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO apps (id, name, api_key_hash, webhook_url, default_stream, created_at)\n             VALUES (?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "fcd787b7e9939c3526b7bf942bc46a13085a3abde08bc89cf834e46125b55b09"
+}
