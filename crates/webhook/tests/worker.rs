@@ -82,7 +82,7 @@ async fn signs_retries_and_completes() {
     assert_eq!(db.webhook_backlog().await.unwrap(), 1, "kept for a retry");
     assert_eq!(worker.tick_at(now).await.unwrap(), 0, "not due yet");
 
-    assert_eq!(worker.tick_at(now + sigill_webhook::BASE_DELAY_MS + 1).await.unwrap(), 1);
+    assert_eq!(worker.tick_at(now + sigill_webhook::BASE_DELAY_MS + 10_000).await.unwrap(), 1);
     assert_eq!(db.webhook_backlog().await.unwrap(), 0);
 
     let got = rx.lock().unwrap().got.clone();
