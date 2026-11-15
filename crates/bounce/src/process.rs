@@ -34,11 +34,31 @@ pub struct Summary {
 pub struct Processor {
     store: Store,
     verp_key: [u8; 32],
+    /// Sending domains whose DMARC reports are stored; reports about anything else are
+    /// dropped, since the report address accepts mail from anyone.
+    dmarc_domains: std::sync::Arc<Vec<String>>,
 }
 
 impl Processor {
     pub fn new(store: Store, verp_key: [u8; 32]) -> Self {
-        Self { store, verp_key }
+        Self { store, verp_key, dmarc_domains: Default::default() }
+    }
+
+    /// Store DMARC reports about these sending domains (or their parent domains).
+    pub fn with_dmarc_domains(mut self, domains: impl IntoIterator<Item = String>) -> Self {
+        self.dmarc_domains = std::sync::Arc::new(
+            domains.into_iter().map(|d| d.trim_end_matches('.').to_ascii_lowercase()).collect(),
+        );
+        self
+    }
+
+    /// Is a report's policy domain one of ours? A report may name the organisational
+    /// domain (`example.com`) when the sending domain (`mail.example.com`) inherits its record.
+    fn is_our_domain(&self, report_domain: &str) -> bool {
+        let d = report_domain.trim_end_matches('.');
+        self.dmarc_domains.iter().any(|ours| {
+            ours == d || (d.contains('.') && ours.strip_suffix(d).is_some_and(|rest| rest.ends_with('.')))
+        })
     }
 
     /// Process one received message for its accepted recipients.
@@ -122,7 +142,17 @@ impl Processor {
     }
 
     async fn dmarc(&self, raw: &[u8], summary: &mut Summary) -> sigill_store::Result<()> {
-        for r in crate::dmarc::extract_reports(raw) {
+        // Decompression and XML parsing can be slow for hostile input: keep them off the
+        // async threads.
+        let owned = raw.to_vec();
+        let reports = tokio::task::spawn_blocking(move || crate::dmarc::extract_reports(&owned))
+            .await
+            .unwrap_or_default();
+        for r in reports {
+            if !self.is_our_domain(&r.domain) {
+                debug!("DMARC report for a domain that is not ours ignored");
+                continue;
+            }
             let stored = self
                 .store
                 .insert_dmarc_report(&sigill_store::dmarc::NewDmarcReport {
@@ -180,7 +210,9 @@ impl Processor {
         feedback: &Feedback,
         hint: Option<VerpTarget>,
     ) -> sigill_store::Result<Option<Delivery>> {
-        let mut message_ids: Vec<String> = Vec::new();
+        // Message ids from a signed VERP address: only someone who received the mail (or
+        // their provider) can know it, so the reported recipient picks the delivery.
+        let mut signed_ids: Vec<String> = Vec::new();
         let targets = hint
             .into_iter()
             .chain(report.verp_candidates.iter().filter_map(|a| verp::decode(&self.verp_key, a)));
@@ -191,22 +223,30 @@ impl Processor {
                         return Ok(Some(d));
                     }
                 }
-                VerpTarget::Message(id) => message_ids.push(id.hyphenated().to_string()),
+                VerpTarget::Message(id) => signed_ids.push(id.hyphenated().to_string()),
             }
         }
-        message_ids.extend(
-            report
-                .original_message_ids
-                .iter()
-                .filter_map(|m| m.split_once('@').map(|(local, _)| local.to_string())),
-        );
-        for id in message_ids {
+        for id in signed_ids {
             let deliveries = self.store.deliveries_for_message(&id).await?;
             if let Some(rcpt) = &feedback.original_rcpt
                 && let Some(d) = deliveries.iter().find(|d| same_address(Some(rcpt), &d.rcpt))
             {
                 return Ok(Some(d.clone()));
             }
+            if deliveries.len() == 1 {
+                return Ok(deliveries.into_iter().next());
+            }
+        }
+        // The original `Message-ID` is not signed, and the complaint address takes mail from
+        // anyone. It is trusted only for messages with a single recipient: there, knowing
+        // the id means having received the message. For a message to several recipients it
+        // would let one of them report (and so suppress) another.
+        let unsigned_ids = report
+            .original_message_ids
+            .iter()
+            .filter_map(|m| m.split_once('@').map(|(local, _)| local.to_string()));
+        for id in unsigned_ids {
+            let deliveries = self.store.deliveries_for_message(&id).await?;
             if deliveries.len() == 1 {
                 return Ok(deliveries.into_iter().next());
             }

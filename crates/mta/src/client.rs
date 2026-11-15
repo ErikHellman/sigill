@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use sigill_core::reply::Reply;
 use smtp_proto::EhloResponse;
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::net::{TcpSocket, TcpStream};
 use tokio_rustls::TlsConnector;
 use tokio_rustls::rustls::pki_types::ServerName;
@@ -25,6 +25,9 @@ pub enum SmtpError {
     #[error("server greeting refused: {0}")]
     Greeting(Reply),
 }
+
+/// Longest reply (all lines together) accepted from a server.
+pub const MAX_REPLY_BYTES: usize = 64 * 1024;
 
 pub trait Stream: AsyncRead + AsyncWrite + Unpin + Send {}
 impl<T: AsyncRead + AsyncWrite + Unpin + Send> Stream for T {}
@@ -100,12 +103,14 @@ impl SmtpClient {
             let mut lines = Vec::new();
             let mut code: u16;
             loop {
+                // Never buffer more than the reply limit, even if no newline ever comes.
+                let room = (MAX_REPLY_BYTES + 1).saturating_sub(raw.len()) as u64;
                 let mut line = Vec::new();
-                if io.read_until(b'\n', &mut line).await? == 0 {
+                if (&mut *io).take(room).read_until(b'\n', &mut line).await? == 0 {
                     return Err(SmtpError::Io(std::io::ErrorKind::UnexpectedEof.into()));
                 }
                 raw.extend_from_slice(&line);
-                if raw.len() > 64 * 1024 {
+                if raw.len() > MAX_REPLY_BYTES || line.last() != Some(&b'\n') {
                     return Err(SmtpError::Protocol("reply too long".into()));
                 }
                 let text = String::from_utf8_lossy(&line);
@@ -241,23 +246,34 @@ impl SmtpClient {
     }
 }
 
-/// Normalise line endings to CRLF, escape leading dots and add the terminator.
+/// Normalise every line ending (CRLF, bare CR, bare LF) to CRLF, escape leading dots and
+/// add the terminator. Bare CR and LF must not reach the wire: a server that treats either
+/// as a line ending would read `<CR>.<CR>` as the end of DATA (SMTP smuggling).
 pub fn dot_stuff(message: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(message.len() + 64);
     let mut at_line_start = true;
-    let mut prev = 0u8;
-    for &b in message {
-        if b == b'\n' && prev != b'\r' {
-            out.push(b'\r');
+    let mut i = 0;
+    while i < message.len() {
+        let b = message[i];
+        i += 1;
+        match b {
+            b'\r' | b'\n' => {
+                if b == b'\r' && message.get(i) == Some(&b'\n') {
+                    i += 1;
+                }
+                out.extend_from_slice(b"\r\n");
+                at_line_start = true;
+            }
+            _ => {
+                if at_line_start && b == b'.' {
+                    out.push(b'.');
+                }
+                out.push(b);
+                at_line_start = false;
+            }
         }
-        if at_line_start && b == b'.' {
-            out.push(b'.');
-        }
-        out.push(b);
-        at_line_start = b == b'\n';
-        prev = b;
     }
-    if !out.ends_with(b"\r\n") {
+    if !at_line_start {
         out.extend_from_slice(b"\r\n");
     }
     out.extend_from_slice(b".\r\n");
@@ -348,6 +364,10 @@ mod tests {
     fn stuffs_dots_and_line_endings() {
         assert_eq!(dot_stuff(b"a\n.b\r\n..c"), b"a\r\n..b\r\n...c\r\n.\r\n".to_vec());
         assert_eq!(dot_stuff(b".\r\n"), b"..\r\n.\r\n".to_vec());
+        // Bare CR and bare LF become CRLF, so no smuggled end-of-data survives.
+        assert_eq!(dot_stuff(b"a\r.\rb"), b"a\r\n..\r\nb\r\n.\r\n".to_vec());
+        assert_eq!(dot_stuff(b"a\n.\nb\r"), b"a\r\n..\r\nb\r\n.\r\n".to_vec());
+        assert_eq!(dot_stuff(b""), b".\r\n".to_vec());
     }
 
     #[tokio::test]

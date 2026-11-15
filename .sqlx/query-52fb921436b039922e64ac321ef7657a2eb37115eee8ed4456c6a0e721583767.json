@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE apps SET webhook_secret_version = webhook_secret_version + 1 WHERE id = ?\n               RETURNING webhook_secret_version AS \"v!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "v!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "apps",
+            "name": "webhook_secret_version"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "52fb921436b039922e64ac321ef7657a2eb37115eee8ed4456c6a0e721583767"
+}

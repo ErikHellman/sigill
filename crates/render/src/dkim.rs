@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
@@ -29,20 +30,33 @@ pub enum DkimError {
     Write { path: PathBuf, source: std::io::Error },
 }
 
-/// Headers covered by the signatures (only those present are signed).
-const SIGNED_HEADERS: [&str; 11] = [
+/// Headers covered by the signatures. Every name is signed even when the message does not
+/// have that header, so it cannot be added afterwards. The ones a reader sees are listed
+/// twice (over-signing): the second entry covers a header that is not there, so a copy of
+/// the message with an extra `From` or `Subject` no longer verifies.
+const SIGNED_HEADERS: [&str; 17] = [
     "From",
+    "From",
+    "To",
     "To",
     "Cc",
     "Subject",
+    "Subject",
     "Date",
+    "Date",
+    "Message-ID",
     "Message-ID",
     "MIME-Version",
     "Content-Type",
     "Reply-To",
+    "Reply-To",
     "List-Unsubscribe",
     "List-Unsubscribe-Post",
 ];
+
+/// Signatures stop verifying after this long (`x=`), which limits replay of old mail.
+/// Longer than the 72 h retry window plus time for forwarding.
+pub const SIGNATURE_LIFETIME: Duration = Duration::from_secs(14 * 24 * 3600);
 
 /// Both signing keys of one domain.
 pub struct DkimKeys {
@@ -86,11 +100,13 @@ impl DkimKeys {
         let rsa = DkimSigner::from_key(rsa)
             .domain(domain.as_str())
             .selector(cfg.rsa_selector())
-            .headers(SIGNED_HEADERS);
+            .headers(SIGNED_HEADERS)
+            .expiration(SIGNATURE_LIFETIME);
         let ed = DkimSigner::from_key(ed)
             .domain(domain.as_str())
             .selector(cfg.ed25519_selector())
-            .headers(SIGNED_HEADERS);
+            .headers(SIGNED_HEADERS)
+            .expiration(SIGNATURE_LIFETIME);
         Ok(Self { domain, rsa, ed, dns_records })
     }
 
@@ -279,6 +295,19 @@ mod tests {
         let lf = String::from_utf8(signed.clone()).unwrap().replace("\r\n", "\n");
         let crlf_again = lf.replace('\n', "\r\n");
         assert_eq!(verify(crlf_again.as_bytes(), &records).await, vec![DkimResult::Pass, DkimResult::Pass]);
+
+        // Signatures expire, and adding a second From or Subject (or a first Reply-To)
+        // breaks them, because those headers are over-signed.
+        assert!(text.contains("x="), "signatures carry an expiry");
+        let original = String::from_utf8(signed.clone()).unwrap();
+        for extra in
+            ["From: Evil <evil@other.test>\r\n", "Subject: Other\r\n", "Reply-To: evil@other.test\r\n"]
+        {
+            let at = original.find("Message-ID:").unwrap();
+            let forged = format!("{}{extra}{}", &original[..at], &original[at..]);
+            let results = verify(forged.as_bytes(), &records).await;
+            assert!(results.iter().all(|r| *r != DkimResult::Pass), "{extra:?} must break the signature");
+        }
 
         // Tampering breaks both signatures.
         let tampered = String::from_utf8(signed).unwrap().replace("Subject: Hello", "Subject: Hellp");

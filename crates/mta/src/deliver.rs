@@ -299,14 +299,29 @@ impl Mta {
         }
         let mut targets = Vec::new();
         let mut last = String::new();
+        let mut refused = false;
         for host in hosts {
             match self.resolver.ipv4(&host).await {
-                Ok(ips) => targets.extend(ips.into_iter().map(|ip| Target {
-                    host: host.clone(),
-                    addr: SocketAddr::from((ip, self.config.delivery.mx_port)),
-                })),
+                Ok(ips) => {
+                    for ip in ips {
+                        // A recipient domain must not be able to point us at internal hosts.
+                        if !self.config.delivery.allow_private_mx && !is_public(ip) {
+                            refused = true;
+                            continue;
+                        }
+                        targets.push(Target {
+                            host: host.clone(),
+                            addr: SocketAddr::from((ip, self.config.delivery.mx_port)),
+                        });
+                    }
+                }
                 Err(e) => last = format!("{host}: {e}"),
             }
+        }
+        if targets.is_empty() && refused {
+            return Err(RouteError::Permanent(
+                "5.4.4 recipient domain's MX points at a non-public address".into(),
+            ));
         }
         if targets.is_empty() {
             return Err(RouteError::Temporary(format!("no MX host has an IPv4 address ({last})")));
@@ -360,7 +375,13 @@ impl Mta {
         active: &[Claimed],
         mime: &[u8],
     ) -> Attempt {
-        let key = PoolKey { addr: t.addr, source, verified_tls: policy.required };
+        // A verified connection is only good for the host name its certificate was checked
+        // against, so that name is part of the key.
+        let key = PoolKey {
+            addr: t.addr,
+            source,
+            verified_host: policy.required.then(|| t.host.to_ascii_lowercase()),
+        };
         // A pooled connection may have been closed by the server; fall back to a new one.
         let mut client = None;
         if let Some(mut c) = self.pool.take(&key) {
@@ -440,6 +461,24 @@ impl Mta {
     }
 }
 
+/// Is this an address on the public internet? Loopback, private (RFC 1918), link-local,
+/// carrier-grade NAT, documentation, multicast, reserved and unspecified ranges are not.
+pub fn is_public(ip: Ipv4Addr) -> bool {
+    let o = ip.octets();
+    !(ip.is_loopback()
+        || ip.is_private()
+        || ip.is_link_local()
+        || ip.is_unspecified()
+        || ip.is_broadcast()
+        || ip.is_multicast()
+        || ip.is_documentation()
+        || o[0] == 0
+        || (o[0] == 100 && (64..128).contains(&o[1]))
+        || (o[0] == 192 && o[1] == 0 && o[2] == 0)
+        || (o[0] == 198 && (18..20).contains(&o[1]))
+        || o[0] >= 240)
+}
+
 enum RouteError {
     Permanent(String),
     Temporary(String),
@@ -462,6 +501,29 @@ mod tests {
             rcpt_domain: d.into(),
             attempts: 0,
             created_at: 0,
+        }
+    }
+
+    #[test]
+    fn public_addresses() {
+        for ip in ["8.8.8.8", "142.250.74.37", "100.63.0.1", "198.20.0.1"] {
+            assert!(is_public(ip.parse().unwrap()), "{ip}");
+        }
+        for ip in [
+            "127.0.0.1",
+            "10.1.2.3",
+            "172.16.0.1",
+            "192.168.1.1",
+            "169.254.169.254",
+            "0.0.0.0",
+            "100.64.0.1",
+            "198.18.0.1",
+            "192.0.2.1",
+            "224.0.0.1",
+            "240.0.0.1",
+            "255.255.255.255",
+        ] {
+            assert!(!is_public(ip.parse().unwrap()), "{ip}");
         }
     }
 

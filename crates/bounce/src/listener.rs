@@ -2,10 +2,13 @@
 //!
 //! It accepts mail only for signed VERP return paths and the complaint and DMARC
 //! addresses of the bounce domains, rejects everything else at RCPT, and caps
-//! message size, recipients, line length, idle time and concurrent connections.
+//! message size, recipients, line length, idle time, session length, commands per session
+//! and concurrent connections (in total and per client address).
 
+use std::collections::HashMap;
+use std::net::IpAddr;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use sigill_core::config::BounceConfig;
@@ -25,6 +28,8 @@ const MAX_COMMAND_LINE: usize = 4096;
 const MAX_DATA_LINE: usize = 64 * 1024;
 const MAX_RECIPIENTS: usize = 50;
 const MAX_ERRORS: usize = 10;
+/// Commands accepted in one session; a real report needs about six.
+const MAX_COMMANDS: usize = 200;
 
 /// Listener settings, derived from [`BounceConfig`] and the configured bounce domains.
 #[derive(Debug, Clone)]
@@ -37,8 +42,12 @@ pub struct Settings {
     pub accept_dmarc: bool,
     pub max_message_bytes: usize,
     pub max_connections: usize,
+    /// Concurrent connections allowed from one IP address.
+    pub max_connections_per_ip: usize,
     /// Idle timeout for each command or data line.
     pub timeout: Duration,
+    /// Longest a whole session may last, however busy it looks.
+    pub max_session: Duration,
 }
 
 impl Settings {
@@ -51,7 +60,9 @@ impl Settings {
             accept_dmarc: true,
             max_message_bytes: cfg.max_message_bytes,
             max_connections: cfg.max_connections,
+            max_connections_per_ip: (cfg.max_connections / 5).clamp(1, 10),
             timeout: Duration::from_secs(120),
+            max_session: Duration::from_secs(600),
         }
     }
 }
@@ -102,6 +113,7 @@ impl Listener {
     /// Accept connections until `token` is cancelled.
     pub async fn run(self, listener: TcpListener, token: CancellationToken) {
         let slots = Arc::new(Semaphore::new(self.settings.max_connections.max(1)));
+        let per_ip: Arc<Mutex<HashMap<IpAddr, usize>>> = Arc::default();
         if let Ok(addr) = listener.local_addr() {
             info!(%addr, tls = self.tls.is_some(), "bounce listener started");
         }
@@ -122,12 +134,22 @@ impl Listener {
                 let _ = stream.write_all(b"421 4.7.0 Too many connections, try again later\r\n").await;
                 continue;
             };
+            // One address may not take every slot.
+            let Some(ip_slot) = IpSlot::take(&per_ip, peer.ip(), self.settings.max_connections_per_ip.max(1))
+            else {
+                let _ = stream.write_all(b"421 4.7.0 Too many connections from your address\r\n").await;
+                continue;
+            };
             let this = self.clone();
             let token = token.clone();
             tokio::spawn(async move {
-                let _permit = permit;
+                let (_permit, _ip_slot) = (permit, ip_slot);
+                let max_session = this.settings.max_session;
                 tokio::select! {
                     _ = token.cancelled() => {}
+                    _ = tokio::time::sleep(max_session) => {
+                        debug!(peer = %peer.ip(), "bounce session cut off at the time limit");
+                    }
                     r = this.session(stream) => if let Err(e) = r {
                         debug!(peer = %peer.ip(), error = %e, "bounce session ended");
                     },
@@ -161,10 +183,17 @@ impl Listener {
         let mut in_mail = false;
         let mut targets: Vec<Target> = Vec::new();
         let mut errors = 0usize;
+        let mut commands = 0usize;
         let mut line = Vec::new();
         loop {
             if errors >= MAX_ERRORS {
                 reply(&mut io, "421 4.7.0 Too many errors\r\n").await?;
+                return Ok(());
+            }
+            // NOOP and RSET are not errors, so a session is also limited by command count.
+            commands += 1;
+            if commands > MAX_COMMANDS {
+                reply(&mut io, "421 4.7.0 Too many commands\r\n").await?;
                 return Ok(());
             }
             line.clear();
@@ -282,6 +311,36 @@ impl Listener {
                     errors += 1;
                     reply(&mut io, "502 5.5.2 Command not implemented\r\n").await?;
                 }
+            }
+        }
+    }
+}
+
+/// One of an address's connection slots, given back on drop.
+struct IpSlot {
+    map: Arc<Mutex<HashMap<IpAddr, usize>>>,
+    ip: IpAddr,
+}
+
+impl IpSlot {
+    fn take(map: &Arc<Mutex<HashMap<IpAddr, usize>>>, ip: IpAddr, max: usize) -> Option<Self> {
+        let mut m = map.lock().expect("per-IP connection counts");
+        let n = m.entry(ip).or_insert(0);
+        if *n >= max {
+            return None;
+        }
+        *n += 1;
+        Some(Self { map: map.clone(), ip })
+    }
+}
+
+impl Drop for IpSlot {
+    fn drop(&mut self) {
+        let mut m = self.map.lock().expect("per-IP connection counts");
+        if let Some(n) = m.get_mut(&self.ip) {
+            *n -= 1;
+            if *n == 0 {
+                m.remove(&self.ip);
             }
         }
     }

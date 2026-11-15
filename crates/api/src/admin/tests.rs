@@ -145,3 +145,27 @@ async fn manages_suppressions_same_origin_only() {
     assert_eq!(s, StatusCode::SEE_OTHER);
     assert!(t.db.get_suppressions("x@y.test").await.unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn failed_logins_are_throttled() {
+    let t = admin_app().await;
+    for _ in 0..super::throttle::MAX_FAILURES_PER_CLIENT {
+        let (s, _) = req(&t, Method::GET, "/admin/queue", Some("wrong"), None, None).await;
+        assert_eq!(s, StatusCode::UNAUTHORIZED);
+    }
+    let (s, _) = req(&t, Method::GET, "/admin/queue", Some("wrong"), None, None).await;
+    assert_eq!(s, StatusCode::TOO_MANY_REQUESTS);
+    let (s, _) = req(&t, Method::GET, "/admin/queue", Some("s3cret"), None, None).await;
+    assert_eq!(s, StatusCode::TOO_MANY_REQUESTS, "a blocked client cannot keep guessing");
+}
+
+#[tokio::test]
+async fn missing_credentials_are_not_counted() {
+    let t = admin_app().await;
+    for _ in 0..(super::throttle::MAX_FAILURES_PER_CLIENT * 2) {
+        let (s, _) = req(&t, Method::GET, "/admin/queue", None, None, None).await;
+        assert_eq!(s, StatusCode::UNAUTHORIZED);
+    }
+    let (s, _) = req(&t, Method::GET, "/admin/queue", Some("s3cret"), None, None).await;
+    assert_eq!(s, StatusCode::OK);
+}

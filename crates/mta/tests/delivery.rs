@@ -304,3 +304,18 @@ async fn suppressed_just_before_delivery() {
     assert_eq!(ds[0].status, DeliveryStatus::Suppressed);
     assert!(srv.received().is_empty());
 }
+
+#[tokio::test]
+async fn refuses_mx_on_private_addresses() {
+    let srv = FakeSmtp::start(Script::default()).await;
+    let db = test_db().await;
+    let ids = seed(&db, &sigill_core::new_id(), &["a@x.test"]).await;
+    let mut cfg = config(srv.port());
+    cfg.delivery.allow_private_mx = false;
+    let run = start(&db, cfg, resolver(), Arc::new(NoPolicies));
+    let ds = settle(&db, &ids).await;
+    run.stop().await;
+    assert_eq!(ds[0].status, DeliveryStatus::Bounced);
+    assert!(ds[0].last_response.as_deref().unwrap().contains("non-public"));
+    assert!(srv.received().is_empty(), "nothing was sent to the loopback address");
+}

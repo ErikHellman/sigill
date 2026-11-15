@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM dmarc_reports WHERE received_at < ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ab57625cdec5dd2495f0620cbba1b4983ddd5379370b4771e0a11eede3c8eb0d"
+}

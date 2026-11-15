@@ -110,7 +110,12 @@ impl WebhookWorker {
             // The app removed its webhook URL; nothing to deliver to.
             return self.store.webhook_done(item.id).await;
         };
-        let secret = self.secrets.webhook_secret(&item.app_id);
+        // Payloads carry recipient addresses: never send them over plain HTTP to another host.
+        if !webhook_url_allowed(url) {
+            warn!(outbox_id = item.id, app_id = %item.app_id, "webhook URL is not https; event dropped");
+            return self.store.webhook_done(item.id).await;
+        }
+        let secret = self.secrets.webhook_secret(&item.app_id, item.webhook_secret_version);
         let ts = now_ms() / 1000;
         let result = self
             .client
@@ -139,6 +144,17 @@ impl WebhookWorker {
     }
 }
 
+/// Webhook URLs must be `https`. Plain `http` is allowed only to this machine (local
+/// development and tests).
+pub fn webhook_url_allowed(url: &str) -> bool {
+    let Ok(u) = reqwest::Url::parse(url) else { return false };
+    match u.scheme() {
+        "https" => u.host_str().is_some(),
+        "http" => matches!(u.host_str(), Some("localhost" | "127.0.0.1" | "[::1]")),
+        _ => false,
+    }
+}
+
 /// reqwest errors include the URL, which may carry an app's credentials.
 fn without_url(e: reqwest::Error) -> reqwest::Error {
     e.without_url()
@@ -155,6 +171,16 @@ mod tests {
         assert_eq!(t, "t=1700000000");
         assert_eq!(v1.len(), 3 + 64);
         assert_ne!(s, signature("other", 1_700_000_000, "{}"));
+    }
+
+    #[test]
+    fn only_https_or_local_urls() {
+        assert!(webhook_url_allowed("https://app.example.com/hooks/sigill"));
+        assert!(webhook_url_allowed("http://127.0.0.1:9000/hook"));
+        assert!(webhook_url_allowed("http://localhost/hook"));
+        assert!(!webhook_url_allowed("http://app.example.com/hook"));
+        assert!(!webhook_url_allowed("ftp://app.example.com/hook"));
+        assert!(!webhook_url_allowed("not a url"));
     }
 
     #[test]

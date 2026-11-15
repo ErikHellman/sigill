@@ -42,13 +42,43 @@ pub fn check_custom_header(name: &str, value: &str) -> Result<(), MimeError> {
     if !name_ok {
         return Err(MimeError::HeaderNotAllowed(name.to_string()));
     }
-    if value.contains(['\r', '\n']) || value.len() > 998 {
+    if value.chars().any(|c| c.is_control() && c != '\t') || value.len() > 998 {
+        return Err(MimeError::BadHeaderValue(name.to_string()));
+    }
+    // `Reply-To` takes exactly one plain address.
+    if lower == "reply-to" && sigill_core::address::Address::parse(value).is_err() {
         return Err(MimeError::BadHeaderValue(name.to_string()));
     }
     Ok(())
 }
 
+/// Turn every line ending (CRLF, bare CR, bare LF) into LF and drop other control
+/// characters except tab. `mail-builder` then writes CRLF. A bare CR must never reach the
+/// wire: some servers treat `<CR>.<CR>` as the end of DATA (SMTP smuggling).
+pub fn normalize_body(s: &str) -> std::borrow::Cow<'_, str> {
+    if !s.chars().any(|c| c == '\r' || (c.is_control() && c != '\n' && c != '\t')) {
+        return std::borrow::Cow::Borrowed(s);
+    }
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\r' => {
+                if chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
+                out.push('\n');
+            }
+            '\n' | '\t' => out.push(c),
+            c if c.is_control() => {}
+            c => out.push(c),
+        }
+    }
+    std::borrow::Cow::Owned(out)
+}
+
 pub fn build_mime(p: &MimeParts<'_>) -> Result<Vec<u8>, MimeError> {
+    let (text, html) = (normalize_body(p.text), normalize_body(p.html));
     let from_domain = p.from.rsplit_once('@').map(|(_, d)| d).unwrap_or("localhost");
     let from: Address<'_> = match p.from_name {
         Some(n) => Address::new_address(Some(n), p.from),
@@ -61,12 +91,12 @@ pub fn build_mime(p: &MimeParts<'_>) -> Result<Vec<u8>, MimeError> {
         .from(from)
         .to(Address::new_list(to))
         .subject(p.subject)
-        .text_body(p.text)
-        .html_body(p.html);
+        .text_body(text.as_ref())
+        .html_body(html.as_ref());
     for (name, value) in p.headers {
         check_custom_header(name, value)?;
         if name.eq_ignore_ascii_case("reply-to") {
-            b = b.reply_to(Address::new_address(None::<&str>, value.as_str()));
+            b = b.reply_to(Address::new_address(None::<&str>, value.trim()));
         } else {
             b = b.header(name.as_str(), Raw::new(value.as_str()));
         }
@@ -122,5 +152,26 @@ mod tests {
         assert!(check_custom_header("X-Sigill-Delivery", "1").is_err());
         assert!(check_custom_header("X-Bad", "a\r\nBcc: x@y.com").is_err());
         assert!(check_custom_header("X Bad", "1").is_err());
+        assert!(check_custom_header("X-Bad", "a\u{0}b").is_err());
+        assert!(check_custom_header("Reply-To", "a@x.com>, <b@y.com").is_err());
+        assert!(check_custom_header("Reply-To", "not an address").is_err());
+    }
+
+    #[test]
+    fn bodies_never_carry_bare_cr() {
+        assert_eq!(normalize_body("a\r\nb\rc\nd\u{0}\te"), "a\nb\nc\nd\te");
+        let to = vec!["a@x.com".to_string()];
+        let mut p = parts(&to, &[]);
+        p.text = "line\r.\rRSET\rmore\n.\nend";
+        p.html = "<p>x</p>\r.\rMAIL FROM:<a@b>\r\n";
+        let raw = build_mime(&p).unwrap();
+        for (i, b) in raw.iter().enumerate() {
+            if *b == b'\r' {
+                assert_eq!(raw.get(i + 1), Some(&b'\n'), "bare CR at byte {i}");
+            }
+            if *b == b'\n' {
+                assert_eq!(raw[i - 1], b'\r', "bare LF at byte {i}");
+            }
+        }
     }
 }

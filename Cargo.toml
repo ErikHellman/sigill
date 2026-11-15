@@ -51,7 +51,7 @@ sha2 = { version = "0.10", default-features = false }
 base64 = { version = "0.22", default-features = false }
 clap = { version = "4", default-features = false }
 getrandom = "0.3"
-vaka-sdk = { git = "https://github.com/ErikHellman/vaka", default-features = false }
+vaka-sdk = { git = "https://github.com/ErikHellman/vaka", rev = "b5c821f989ed51cb9211644d39756ee4c31df8ce", default-features = false }
 insta = { version = "1", default-features = false }
 tempfile = "3"
 rcgen = { version = "0.14", default-features = false }

@@ -49,7 +49,8 @@ pub async fn serve(config: Config) -> anyhow::Result<()> {
             .await
             .with_context(|| format!("binding bounce listener on {}", config.bounce.listen))?;
         let settings = sigill_bounce::Settings::new(&config.bounce, config.bounce_domains());
-        let processor = sigill_bounce::Processor::new(store.clone(), secrets.verp_key());
+        let processor = sigill_bounce::Processor::new(store.clone(), secrets.verp_key())
+            .with_dmarc_domains(config.domains.iter().map(|d| d.name.clone()));
         Some((sigill_bounce::Listener::new(settings, processor, secrets.verp_key(), tls), listener))
     } else {
         None
@@ -59,6 +60,14 @@ pub async fn serve(config: Config) -> anyhow::Result<()> {
         config.secrets.admin_password_file.as_deref(),
     )
     .context("reading admin password")?;
+    if let Some(p) = admin_password.as_deref().filter(|p| !p.is_empty())
+        && p.chars().count() < sigill_api::admin::MIN_ADMIN_PASSWORD_LEN
+    {
+        anyhow::bail!(
+            "the admin password must be at least {} characters (the admin UI is reachable over the network)",
+            sigill_api::admin::MIN_ADMIN_PASSWORD_LEN
+        );
+    }
     if admin_password.is_none() {
         tracing::info!("admin UI disabled (set SIGILL_ADMIN_PASSWORD to enable it)");
     }

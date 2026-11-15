@@ -3489,7 +3489,7 @@ dependencies = [
 [[package]]
 name = "vaka-sdk"
 version = "0.3.0"
-source = "git+https://github.com/ErikHellman/vaka#b5c821f989ed51cb9211644d39756ee4c31df8ce"
+source = "git+https://github.com/ErikHellman/vaka?rev=b5c821f989ed51cb9211644d39756ee4c31df8ce#b5c821f989ed51cb9211644d39756ee4c31df8ce"
 dependencies = [
  "backtrace",
  "findshlibs",

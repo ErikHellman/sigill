@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM messages\n             WHERE created_at < ?\n               AND NOT EXISTS (SELECT 1 FROM deliveries d WHERE d.message_id = messages.id\n                               AND d.status IN ('queued', 'sending', 'deferred'))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "88a77d0ff85e2d4d0312fe9243c99c7259f5189cc8aaee1cfa45f1c53f8a8fe1"
+}

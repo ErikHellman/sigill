@@ -35,11 +35,20 @@ pub async fn delete(
     Path(address): Path<String>,
 ) -> ApiResult<StatusCode> {
     let address = norm(&address)?;
-    if state.store.remove_suppression(&address).await? == 0 {
-        return Err(ApiError::not_found("suppression"));
+    // Apps may lift manual and bounce suppressions. A complaint or an unsubscribe is the
+    // recipient's decision; only the owner can remove those, in the admin UI.
+    match state.store.remove_liftable_suppressions(&address).await? {
+        (0, 0) => Err(ApiError::not_found("suppression")),
+        (_, 0) => {
+            tracing::info!("suppression removed via API");
+            Ok(StatusCode::NO_CONTENT)
+        }
+        _ => Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "suppression_protected",
+            "the recipient complained or unsubscribed; this suppression can only be removed in the admin UI",
+        )),
     }
-    tracing::info!("suppression removed via API");
-    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Debug, Deserialize)]
@@ -84,5 +93,27 @@ mod tests {
         assert_eq!(s, StatusCode::NO_CONTENT);
         let (s, _) = t.call(Method::DELETE, "/v1/suppressions/a@x.com", None).await;
         assert_eq!(s, StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn complaints_and_unsubscribes_cannot_be_lifted_by_apps() {
+        use sigill_core::{Stream, SuppressionReason, SuppressionScope};
+        let t = TestApp::new().await;
+        for (addr, scope, reason) in [
+            ("c@x.com", SuppressionScope::All, SuppressionReason::Complaint),
+            ("u@x.com", SuppressionScope::Broadcast, SuppressionReason::Unsubscribe),
+            ("b@x.com", SuppressionScope::All, SuppressionReason::HardBounce),
+        ] {
+            t.db.add_suppression(addr, scope, reason, None).await.unwrap();
+        }
+        for addr in ["c@x.com", "u@x.com"] {
+            let (s, v) = t.call(Method::DELETE, &format!("/v1/suppressions/{addr}"), None).await;
+            assert_eq!(s, StatusCode::CONFLICT, "{v}");
+            assert_eq!(v["error"]["code"], "suppression_protected");
+            assert!(t.db.is_suppressed(addr, Stream::Broadcast).await.unwrap());
+        }
+        let (s, _) = t.call(Method::DELETE, "/v1/suppressions/b@x.com", None).await;
+        assert_eq!(s, StatusCode::NO_CONTENT);
+        assert!(!t.db.is_suppressed("b@x.com", Stream::Transactional).await.unwrap());
     }
 }

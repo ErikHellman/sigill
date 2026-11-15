@@ -8,6 +8,19 @@ use sigill_store::dmarc::DmarcRecord;
 
 /// Largest decompressed report accepted.
 const MAX_XML_BYTES: usize = 32 * 1024 * 1024;
+/// Report-shaped attachments looked at per email. Real reports carry one; the address is
+/// public, so everything about a message is capped.
+pub const MAX_ATTACHMENTS: usize = 4;
+/// Decompressed bytes accepted per email, over all its attachments.
+const MAX_TOTAL_XML_BYTES: usize = 48 * 1024 * 1024;
+/// Records accepted per report; a report with more is dropped.
+pub const MAX_RECORDS: usize = 10_000;
+/// Longest text field stored from a report.
+const MAX_FIELD_CHARS: usize = 255;
+
+fn field(value: &str) -> String {
+    value.chars().take(MAX_FIELD_CHARS).collect()
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AggregateReport {
@@ -28,15 +41,24 @@ pub enum DmarcError {
     Xml(String),
     #[error("report is missing {0}")]
     Missing(&'static str),
+    #[error("report has more than {MAX_RECORDS} records")]
+    TooManyRecords,
 }
 
-/// Every aggregate report attached to (or forming the body of) an email.
+/// The aggregate reports attached to (or forming the body of) an email: at most
+/// [`MAX_ATTACHMENTS`] attachments are opened and their decompressed size is capped.
+/// This is CPU-heavy for hostile input; call it from a blocking thread.
 pub fn extract_reports(raw: &[u8]) -> Vec<AggregateReport> {
     let Some(message) = MessageParser::new().parse(raw) else { return Vec::new() };
     let mut out = Vec::new();
+    let mut opened = 0usize;
+    let mut inflated = 0usize;
     for part in message.parts() {
         if part.is_multipart() {
             continue;
+        }
+        if opened >= MAX_ATTACHMENTS || inflated >= MAX_TOTAL_XML_BYTES {
+            break;
         }
         let ct = part.content_type();
         let mime = ct
@@ -53,7 +75,12 @@ pub fn extract_reports(raw: &[u8]) -> Vec<AggregateReport> {
         } else {
             None
         };
+        if xml.is_some() || mime.contains("zip") || name.ends_with(".zip") || name.ends_with(".gz") {
+            opened += 1;
+        }
+        inflated += xml.as_ref().map_or(0, Vec::len);
         if let Some(xml) = xml
+            && xml.len() <= MAX_XML_BYTES
             && let Ok(report) = parse_xml(&String::from_utf8_lossy(&xml))
         {
             out.push(report);
@@ -72,8 +99,14 @@ pub fn parse_xml(xml: &str) -> Result<AggregateReport, DmarcError> {
     loop {
         match reader.read_event().map_err(|e| DmarcError::Xml(e.to_string()))? {
             Event::Start(e) => {
+                if path.len() >= 16 {
+                    return Err(DmarcError::Xml("nesting too deep".into()));
+                }
                 let name = String::from_utf8_lossy(e.local_name().as_ref()).to_ascii_lowercase();
                 if name == "record" && path.last().map(String::as_str) == Some("feedback") {
+                    if report.records.len() >= MAX_RECORDS {
+                        return Err(DmarcError::TooManyRecords);
+                    }
                     record = Some(DmarcRecord {
                         source_ip: String::new(),
                         count: 0,
@@ -103,33 +136,33 @@ pub fn parse_xml(xml: &str) -> Result<AggregateReport, DmarcError> {
                 let joined = path.join("/");
                 let value = text.trim();
                 match joined.as_str() {
-                    "feedback/report_metadata/org_name" => report.org_name = value.to_string(),
-                    "feedback/report_metadata/report_id" => report.report_id = value.to_string(),
+                    "feedback/report_metadata/org_name" => report.org_name = field(value),
+                    "feedback/report_metadata/report_id" => report.report_id = field(value),
                     "feedback/report_metadata/date_range/begin" => {
                         report.date_begin = value.parse::<i64>().unwrap_or(0) * 1000
                     }
                     "feedback/report_metadata/date_range/end" => {
                         report.date_end = value.parse::<i64>().unwrap_or(0) * 1000
                     }
-                    "feedback/policy_published/domain" => report.domain = value.to_ascii_lowercase(),
-                    "feedback/policy_published/p" => report.policy = value.to_ascii_lowercase(),
+                    "feedback/policy_published/domain" => report.domain = field(value).to_ascii_lowercase(),
+                    "feedback/policy_published/p" => report.policy = field(value).to_ascii_lowercase(),
                     _ => {}
                 }
                 if let Some(r) = record.as_mut() {
                     match joined.as_str() {
-                        "feedback/record/row/source_ip" => r.source_ip = value.to_string(),
+                        "feedback/record/row/source_ip" => r.source_ip = field(value),
                         "feedback/record/row/count" => r.count = value.parse().unwrap_or(0),
                         "feedback/record/row/policy_evaluated/disposition" => {
-                            r.disposition = value.to_ascii_lowercase()
+                            r.disposition = field(value).to_ascii_lowercase()
                         }
                         "feedback/record/row/policy_evaluated/dkim" => {
-                            r.dkim_result = value.to_ascii_lowercase()
+                            r.dkim_result = field(value).to_ascii_lowercase()
                         }
                         "feedback/record/row/policy_evaluated/spf" => {
-                            r.spf_result = value.to_ascii_lowercase()
+                            r.spf_result = field(value).to_ascii_lowercase()
                         }
                         "feedback/record/identifiers/header_from" => {
-                            r.header_from = value.to_ascii_lowercase()
+                            r.header_from = field(value).to_ascii_lowercase()
                         }
                         "feedback/record" => report.records.extend(record.take()),
                         _ => {}

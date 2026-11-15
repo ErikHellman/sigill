@@ -224,6 +224,52 @@ async fn complaints_via_fbl_address() {
 }
 
 #[tokio::test]
+async fn unsigned_complaint_cannot_suppress_a_co_recipient() {
+    let env = start(|_| {}, None).await;
+    // Two recipients got the same message, so both know its Message-ID. A report naming
+    // the other recipient, with no valid VERP address in it, must not be believed.
+    let mid = sigill_core::new_id();
+    let ids = sent_message(&env.db, &mid, &[RCPT, "attacker@example.org"]).await;
+    let raw = fixture("yahoo_arf.eml", "unused", &format!("{mid}@mail.example.com"));
+    let fbl = format!("fbl@{BOUNCE_DOMAIN}");
+    assert_eq!(send(env.addr, "attacker@example.org", &[&fbl], &raw).await, vec![250, 250, 250]);
+    assert!(!env.db.is_suppressed(RCPT_NORM, Stream::Transactional).await.unwrap());
+    let kinds: Vec<_> =
+        env.db.events_for_delivery(&ids[0]).await.unwrap().into_iter().map(|e| e.kind).collect();
+    assert!(!kinds.contains(&EventKind::Complained));
+}
+
+#[tokio::test]
+async fn limits_connections_per_address() {
+    let env = start(|s| s.max_connections_per_ip = 2, None).await;
+    let a = SmtpClient::connect(env.addr, None, Duration::from_secs(5)).await.unwrap();
+    let b = SmtpClient::connect(env.addr, None, Duration::from_secs(5)).await.unwrap();
+    assert!(SmtpClient::connect(env.addr, None, Duration::from_secs(5)).await.is_err());
+    a.quit().await;
+    // The slot is given back when a connection ends.
+    let mut ok = false;
+    for _ in 0..50 {
+        if let Ok(c) = SmtpClient::connect(env.addr, None, Duration::from_secs(5)).await {
+            c.quit().await;
+            ok = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(ok);
+    b.quit().await;
+}
+
+#[tokio::test]
+async fn ends_sessions_at_the_time_limit() {
+    let env = start(|s| s.max_session = Duration::from_millis(300), None).await;
+    let mut c = SmtpClient::connect(env.addr, None, Duration::from_secs(5)).await.unwrap();
+    c.ehlo("a.test").await.unwrap();
+    tokio::time::sleep(Duration::from_millis(600)).await;
+    assert!(c.rset().await.is_err(), "the server closed the connection");
+}
+
+#[tokio::test]
 async fn rejects_unknown_and_forged_recipients() {
     let env = start(|_| {}, None).await;
     let id = sigill_core::new_id();

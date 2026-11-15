@@ -12,6 +12,8 @@ pub struct App {
     pub api_key_hash: String,
     pub webhook_url: Option<String>,
     pub default_stream: Stream,
+    /// Version of the webhook signing secret; raised to rotate it.
+    pub webhook_secret_version: i64,
     pub created_at: i64,
 }
 
@@ -21,6 +23,7 @@ struct Row {
     api_key_hash: String,
     webhook_url: Option<String>,
     default_stream: String,
+    webhook_secret_version: i64,
     created_at: i64,
 }
 
@@ -33,6 +36,7 @@ impl TryFrom<Row> for App {
             api_key_hash: r.api_key_hash,
             webhook_url: r.webhook_url,
             default_stream: parse(&r.default_stream)?,
+            webhook_secret_version: r.webhook_secret_version,
             created_at: r.created_at,
         })
     }
@@ -74,7 +78,7 @@ impl Store {
     pub async fn get_app(&self, id: &str) -> Result<Option<App>> {
         let row = sqlx::query_as!(
             Row,
-            "SELECT id, name, api_key_hash, webhook_url, default_stream, created_at
+            "SELECT id, name, api_key_hash, webhook_url, default_stream, webhook_secret_version, created_at
              FROM apps WHERE id = ?",
             id
         )
@@ -86,7 +90,7 @@ impl Store {
     pub async fn list_apps(&self) -> Result<Vec<App>> {
         let rows = sqlx::query_as!(
             Row,
-            "SELECT id, name, api_key_hash, webhook_url, default_stream, created_at
+            "SELECT id, name, api_key_hash, webhook_url, default_stream, webhook_secret_version, created_at
              FROM apps ORDER BY name"
         )
         .fetch_all(&self.read)
@@ -102,6 +106,18 @@ impl Store {
             return Err(crate::Error::NotFound);
         }
         Ok(())
+    }
+
+    /// Rotate the app's webhook signing secret. Returns the new version.
+    pub async fn bump_webhook_secret_version(&self, id: &str) -> Result<i64> {
+        let v = sqlx::query_scalar!(
+            r#"UPDATE apps SET webhook_secret_version = webhook_secret_version + 1 WHERE id = ?
+               RETURNING webhook_secret_version AS "v!: i64""#,
+            id
+        )
+        .fetch_optional(&self.write)
+        .await?;
+        v.ok_or(crate::Error::NotFound)
     }
 
     pub async fn set_app_key_hash(&self, id: &str, api_key_hash: &str) -> Result<()> {
@@ -137,5 +153,9 @@ mod tests {
             Some("https://x.test/hook")
         );
         assert_eq!(db.list_apps().await.unwrap().len(), 1);
+        assert_eq!(app.webhook_secret_version, 0);
+        assert_eq!(db.bump_webhook_secret_version("a1").await.unwrap(), 1);
+        assert_eq!(db.get_app("a1").await.unwrap().unwrap().webhook_secret_version, 1);
+        assert!(db.bump_webhook_secret_version("nope").await.is_err());
     }
 }

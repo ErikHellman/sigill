@@ -2,3 +2,8 @@ target
 .git
 *.db
 *.db-*
+# Secrets must never end up in a build context or an image layer.
+.env
+.env.*
+*.pem
+*.key

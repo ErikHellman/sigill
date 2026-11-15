@@ -74,7 +74,7 @@ async fn signs_retries_and_completes() {
     let (url, rx) = receiver(vec![500]).await;
     seed(&db, &url).await;
     let secrets = sigill_testkit::secrets();
-    let secret = secrets.webhook_secret("app1");
+    let secret = secrets.webhook_secret("app1", 0);
     let worker = WebhookWorker::new(db.store.clone(), secrets, &WebhookConfig::default()).unwrap();
 
     let now = sigill_core::now_ms() + 1;

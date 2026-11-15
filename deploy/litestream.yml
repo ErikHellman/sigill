@@ -14,3 +14,9 @@ dbs:
         sync-interval: 1s
         snapshot-interval: 24h
         retention: 168h                   # keep a week of snapshots and WAL
+        # Optional client-side encryption (the database holds recipient addresses and
+        # message bodies). Generate a key with `age-keygen`, keep the identity with the
+        # master key, and uncomment:
+        # age:
+        #   recipients: [age1...]
+        #   identities: [AGE-SECRET-KEY-1...]
