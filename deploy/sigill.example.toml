@@ -2,7 +2,8 @@
 # Every key can also be set from the environment: SIGILL_<SECTION>__<KEY>, for example
 # SIGILL_DELIVERY__MODE=smarthost. Secrets never go in this file:
 #   SIGILL_MASTER_KEY      (or secrets.master_key_file)  at least 32 random bytes
-#   SIGILL_ADMIN_PASSWORD  (or secrets.admin_password_file)  enables /admin
+#   SIGILL_ADMIN_PASSWORD  (or secrets.admin_password_file)  enables /admin; at least 16
+#                          characters. Restrict /admin in the reverse proxy (see the runbook).
 #   VAKA_KEY, VAKA_ENDPOINT, VAKA_ENVIRONMENT  error reporting and analytics
 
 [server]
@@ -71,8 +72,9 @@ max_attempts = 12
 timeout_secs = 10
 
 [retention]
-message_body_days = 30
-event_days = 395
+message_body_days = 30              # rendered bodies
+event_days = 395                    # delivery events and DMARC reports
+message_days = 395                  # message records with recipients and subjects
 
 [alerts]
 queue_backlog = 5000

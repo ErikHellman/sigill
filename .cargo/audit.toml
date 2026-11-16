@@ -1,0 +1,14 @@
+# Advisories `cargo audit` reports that cannot be fixed yet. Review this list whenever a
+# dependency is upgraded and remove entries as soon as a fix can be taken.
+[advisories]
+ignore = [
+    # rsa: Marvin timing side channel in private-key operations. No fixed 0.9 release;
+    # mail-auth's pure-Rust backend (used for DKIM signing and key generation) needs it,
+    # and its other backend, aws-lc-rs, is a large C build. The key only signs outgoing
+    # mail, and a remote party cannot time individual signatures, so the risk is accepted.
+    "RUSTSEC-2023-0071",
+    # libsqlite3-sys: bundled SQLite CVE, fixed in 0.39. sqlx 0.9.0 (the latest) only
+    # accepts versions below 0.38. Every statement Sigill runs is fixed, parameterised SQL
+    # on its own database file. Upgrade as soon as sqlx allows it.
+    "RUSTSEC-2026-0459",
+]

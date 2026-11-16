@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM suppressions WHERE address = ? AND reason IN ('manual', 'hard_bounce', 'soft_bounce')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "428d97977a8216a27f040bc5720f60e630739daff661ae41f344427a7b89a107"
+}

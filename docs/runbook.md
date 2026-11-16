@@ -33,8 +33,23 @@ separate server.
    region in `deploy/litestream.yml` (`https://<location>.your-objectstorage.com`) and put the
    keys in `/etc/sigill/litestream.env` (mode 0600) as `LITESTREAM_ACCESS_KEY_ID` and
    `LITESTREAM_SECRET_ACCESS_KEY`.
-8. **Reverse proxy.** Install Caddy with `mail-api.example.com { reverse_proxy 127.0.0.1:8080 }`
-   to get TLS for the API, unsubscribe links and the admin UI.
+8. **Reverse proxy.** Install Caddy to get TLS for the API, unsubscribe links and the admin
+   UI. The API and `/u/…` links must be public; `/admin` must not be. Allow it only from your
+   own addresses (or a VPN range):
+
+   ```
+   mail-api.example.com {
+       @admin_outside {
+           path /admin /admin/*
+           not remote_ip 198.51.100.7 2001:db8::/48   # your own addresses
+       }
+       respond @admin_outside 404
+       reverse_proxy 127.0.0.1:8080
+   }
+   ```
+
+   Do not set `trusted_proxies` unless another proxy sits in front of Caddy: Sigill counts
+   failed admin logins per client using the `X-Forwarded-For` address Caddy adds.
 
 Then continue with "First install".
 
@@ -46,7 +61,9 @@ Then continue with "First install".
    and create the `sigill` user: `useradd --system --home /var/lib/sigill sigill`.
 3. Copy `deploy/sigill.example.toml` to `/etc/sigill/sigill.toml` and fill in domains, IPs and
    host names. Generate secrets (mode 0600, owned by `sigill`):
-   `head -c 48 /dev/urandom | base64 > /etc/sigill/master.key` and an admin password file.
+   `head -c 48 /dev/urandom | base64 > /etc/sigill/master.key` and an admin password file
+   (`head -c 24 /dev/urandom | base64 > /etc/sigill/admin.password`; `serve` refuses a
+   password shorter than 16 characters).
    Back up the master key offline: losing it invalidates every API key, VERP address,
    unsubscribe link and webhook secret.
 4. `sigill dkim-keygen` writes keys to `dkim_key_dir` and prints the DKIM TXT records.
@@ -93,6 +110,14 @@ yours, move `p=none` → `p=quarantine` (`pct=25`, then `100`) → `p=reject`.
 3. Switch the live config to the new selector and restart: `systemctl restart sigill`.
 4. Keep the old DNS records for at least a week (mail in flight and forwarded mail is still
    verified against them), then remove them and delete the old key files.
+
+## API key and webhook secret rotation
+
+- `sigill app rotate-key --id <id>` prints a new API key. The old key stops working at once,
+  with no restart.
+- `sigill app rotate-webhook-secret --id <id>` prints a new signing secret for that app's
+  webhooks. Events are signed with it from then on, so update the receiving app right away.
+- Webhook URLs must be `https` (events carry recipient addresses).
 
 ## Master key rotation
 
@@ -143,8 +168,24 @@ Litestream replicates the database continuously. To restore onto a fresh host:
    the new IP and run `sigill dns-check`. A Hetzner server backup or snapshot is the quicker
    path when the server itself is fine and only needs rolling back.
 
+The replica holds recipient addresses and up to 30 days of message bodies. Keep the bucket
+private, use an S3 credential that can reach only this bucket, and consider client-side
+encryption: `deploy/litestream.yml` has a commented `age` block for it. If you turn it on,
+store the age identity with the master key; without it the backup cannot be restored.
+
 Practice it: `scripts/restore-drill.sh` runs the whole cycle against a local file replica and
 checks that the restored database is intact and complete.
+
+## Suppressions
+
+Apps can lift manual and bounce suppressions through the API. A complaint or an unsubscribe
+is the recipient's decision: the API answers 409 for those, and only the admin UI removes
+them. Do that only when the recipient has asked for it.
+
+## Dependency advisories
+
+CI runs `cargo audit`. Advisories that cannot be fixed yet are listed with the reason in
+`.cargo/audit.toml`; when upgrading `sqlx` or `mail-auth`, try removing the entries.
 
 ## Logs and debugging
 

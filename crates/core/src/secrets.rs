@@ -81,9 +81,14 @@ impl Secrets {
         self.derive("sigill/unsubscribe")
     }
 
-    /// Webhook signing secret for one app, shown to the app owner as base64url.
-    pub fn webhook_secret(&self, app_id: &str) -> String {
-        URL_SAFE_NO_PAD.encode(self.derive(&format!("sigill/webhook/{app_id}")))
+    /// Webhook signing secret for one app, shown to the app owner as base64url. `version`
+    /// starts at 0 and is raised to rotate the secret of that app alone.
+    pub fn webhook_secret(&self, app_id: &str, version: i64) -> String {
+        let label = match version {
+            0 => format!("sigill/webhook/{app_id}"),
+            v => format!("sigill/webhook/{app_id}/v{v}"),
+        };
+        URL_SAFE_NO_PAD.encode(self.derive(&label))
     }
 }
 
@@ -122,8 +127,9 @@ mod tests {
     fn derives_distinct_stable_keys() {
         let s = Secrets::new(vec![7u8; 32]).unwrap();
         assert_ne!(s.verp_key(), s.api_key_pepper());
-        assert_eq!(s.webhook_secret("a"), s.webhook_secret("a"));
-        assert_ne!(s.webhook_secret("a"), s.webhook_secret("b"));
+        assert_eq!(s.webhook_secret("a", 0), s.webhook_secret("a", 0));
+        assert_ne!(s.webhook_secret("a", 0), s.webhook_secret("b", 0));
+        assert_ne!(s.webhook_secret("a", 0), s.webhook_secret("a", 1));
         assert!(Secrets::new(vec![1u8; 8]).is_err());
         assert!(ct_eq(b"abc", b"abc"));
         assert!(!ct_eq(b"abc", b"abd"));

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, api_key_hash, webhook_url, default_stream, created_at\n             FROM apps ORDER BY name",
+  "query": "SELECT id, name, api_key_hash, webhook_url, default_stream, webhook_secret_version, created_at\n             FROM apps WHERE id = ?",
   "describe": {
     "columns": [
       {
@@ -59,8 +59,19 @@
         }
       },
       {
-        "name": "created_at",
+        "name": "webhook_secret_version",
         "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "apps",
+            "name": "webhook_secret_version"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 6,
         "type_info": "Integer",
         "origin": {
           "Table": {
@@ -71,7 +82,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -79,8 +90,9 @@
       false,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "8999fa23eaef99e3dd1b51eca89ea8cdc970dfd34360dd406011319e5ffbc472"
+  "hash": "9c94fba61d71baeef43a30ee621a6b8e169d746229d060bda49d04469a0780b9"
 }

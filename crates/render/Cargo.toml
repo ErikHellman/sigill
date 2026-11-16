@@ -9,7 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 sigill-core.workspace = true
-minijinja = { workspace = true, features = ["builtins", "serde"] }
+minijinja = { workspace = true, features = ["builtins", "serde", "fuel"] }
 mrml = { workspace = true, features = ["parse", "render"] }
 mail-builder.workspace = true
 mail-auth = { workspace = true, features = ["rust-crypto", "generate", "dns-hickory"] }

@@ -7,6 +7,7 @@ pub struct OutboxItem {
     pub id: i64,
     pub app_id: String,
     pub webhook_url: Option<String>,
+    pub webhook_secret_version: i64,
     pub payload: String,
     pub attempts: i64,
 }
@@ -15,7 +16,7 @@ impl Store {
     pub async fn due_webhooks(&self, now: i64, limit: i64) -> Result<Vec<OutboxItem>> {
         Ok(sqlx::query_as!(
             OutboxItem,
-            "SELECT o.id, o.app_id, a.webhook_url, o.payload, o.attempts
+            "SELECT o.id, o.app_id, a.webhook_url, a.webhook_secret_version, o.payload, o.attempts
              FROM webhook_outbox o JOIN apps a ON a.id = o.app_id
              WHERE o.next_attempt_at <= ? ORDER BY o.next_attempt_at, o.id LIMIT ?",
             now,

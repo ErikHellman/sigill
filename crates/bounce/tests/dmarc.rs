@@ -97,10 +97,10 @@ async fn ingests_over_smtp_once() {
     let addr = listener.local_addr().unwrap();
     let token = CancellationToken::new();
     let key = [1u8; 32];
-    tokio::spawn(
-        Listener::new(settings, Processor::new(db.store.clone(), key), key, None)
-            .run(listener, token.clone()),
-    );
+    // Reports are kept only for our own sending domains (here a subdomain of the report's).
+    let processor =
+        Processor::new(db.store.clone(), key).with_dmarc_domains(["mail.example.com".to_string()]);
+    tokio::spawn(Listener::new(settings, processor, key, None).run(listener, token.clone()));
 
     let raw = email("application/gzip", "r.xml.gz", &gzip(xml().as_bytes()));
     for _ in 0..2 {
@@ -115,5 +115,48 @@ async fn ingests_over_smtp_once() {
     assert_eq!(reports.len(), 1, "the same report twice is stored once");
     assert_eq!((reports[0].total_count, reports[0].fail_count), (45, 3));
     assert_eq!(db.dmarc_failures(10).await.unwrap().len(), 1);
+
+    // A report about someone else's domain is accepted at SMTP level but not stored.
+    let other = xml()
+        .replace("<domain>example.com</domain>", "<domain>other.test</domain>")
+        .replace("17035471826845392219", "999");
+    let raw = email("application/gzip", "r.xml.gz", &gzip(other.as_bytes()));
+    let mut c = SmtpClient::connect(addr, None, Duration::from_secs(5)).await.unwrap();
+    c.ehlo("mx.evil.test").await.unwrap();
+    c.mail_from("x@evil.test", raw.len()).await.unwrap();
+    c.rcpt_to("dmarc@bounces.example.com").await.unwrap();
+    assert_eq!(c.data(&raw).await.unwrap().code, 250);
+    c.quit().await;
+    assert_eq!(db.recent_dmarc_reports(10).await.unwrap().len(), 1);
     token.cancel();
+}
+
+#[test]
+fn caps_attachments_and_records() {
+    use sigill_bounce::dmarc::{MAX_ATTACHMENTS, MAX_RECORDS};
+    // Many attachments in one email: only the first few are opened.
+    let x = xml();
+    let mut raw = String::from(
+        "From: a@b.test\r\nTo: dmarc@bounces.example.com\r\nSubject: r\r\nMIME-Version: 1.0\r\n\
+         Content-Type: multipart/mixed; boundary=\"b\"\r\n\r\n",
+    );
+    for i in 0..(MAX_ATTACHMENTS + 6) {
+        let payload = x.replace("17035471826845392219", &format!("id{i}"));
+        let b64 = base64::engine::general_purpose::STANDARD.encode(gzip(payload.as_bytes()));
+        raw.push_str(&format!(
+            "--b\r\nContent-Type: application/gzip; name=\"r{i}.xml.gz\"\r\n\
+             Content-Transfer-Encoding: base64\r\n\r\n{b64}\r\n"
+        ));
+    }
+    raw.push_str("--b--\r\n");
+    assert_eq!(extract_reports(raw.as_bytes()).len(), MAX_ATTACHMENTS);
+
+    // A report with too many records is refused whole.
+    let record = "<record><row><source_ip>192.0.2.1</source_ip><count>1</count></row></record>";
+    let big = format!(
+        "<feedback><report_metadata><org_name>o</org_name><report_id>1</report_id></report_metadata>\
+         <policy_published><domain>example.com</domain></policy_published>{}</feedback>",
+        record.repeat(MAX_RECORDS + 1)
+    );
+    assert!(parse_xml(&big).is_err());
 }

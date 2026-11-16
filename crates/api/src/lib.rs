@@ -44,6 +44,8 @@ pub struct Inner {
     pub wake: Arc<Notify>,
     /// Admin UI password; the admin UI is off without one.
     pub admin_password: Option<String>,
+    /// Failed admin logins, for throttling.
+    pub admin_logins: admin::LoginThrottle,
 }
 
 impl AppState {
@@ -65,6 +67,7 @@ impl AppState {
                 rate_limiter,
                 wake,
                 admin_password: None,
+                admin_logins: admin::LoginThrottle::default(),
             }),
         }
     }

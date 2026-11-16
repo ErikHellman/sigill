@@ -2,7 +2,9 @@
 //!
 //! The check is deliberately practical rather than a full RFC 5322 parser: it accepts
 //! `local@domain` with a dot-atom local part (or a quoted one) and an LDH domain with at
-//! least one dot, which is what real mailboxes look like.
+//! least one dot, which is what real mailboxes look like. Addresses are ASCII only: the
+//! SMTP client does not speak SMTPUTF8, so an internationalised domain must be given in
+//! its punycode (`xn--`) form.
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum AddressError {
@@ -87,11 +89,7 @@ fn valid_local(local: &str) -> bool {
     if local.starts_with('.') || local.ends_with('.') || local.contains("..") {
         return false;
     }
-    local.chars().all(|c| {
-        c.is_ascii_alphanumeric()
-            || "!#$%&'*+-/=?^_`{|}~.".contains(c)
-            || (!c.is_ascii() && c.is_alphanumeric())
-    })
+    local.chars().all(|c| c.is_ascii_alphanumeric() || "!#$%&'*+-/=?^_`{|}~.".contains(c))
 }
 
 pub(crate) fn valid_domain(domain: &str) -> bool {
@@ -103,9 +101,7 @@ pub(crate) fn valid_domain(domain: &str) -> bool {
             && label.len() <= 63
             && !label.starts_with('-')
             && !label.ends_with('-')
-            && label
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '-' || (!c.is_ascii() && c.is_alphanumeric()))
+            && label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
     })
 }
 
@@ -134,6 +130,10 @@ mod tests {
         assert_eq!(Address::parse("a b@example.com"), Err(AddressError::LocalPart));
         assert_eq!(Address::parse("a@localhost"), Err(AddressError::Domain));
         assert_eq!(Address::parse("a@-bad.com"), Err(AddressError::Domain));
+        // No SMTPUTF8: non-ASCII is refused, punycode domains are fine.
+        assert_eq!(Address::parse("jörg@example.com"), Err(AddressError::LocalPart));
+        assert_eq!(Address::parse("a@bücher.example"), Err(AddressError::Domain));
+        assert!(Address::parse("a@xn--bcher-kva.example").is_ok());
         assert_eq!(Address::parse(&format!("{}@example.com", "a".repeat(65))), Err(AddressError::LocalPart));
     }
 

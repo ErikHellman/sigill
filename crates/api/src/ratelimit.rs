@@ -21,6 +21,19 @@ impl RateLimiter {
         self.allow_at(key, Instant::now())
     }
 
+    /// Whether `key` has a token left, without taking one.
+    pub fn has_capacity(&self, key: &str) -> bool {
+        let now = Instant::now();
+        let buckets = self.buckets.lock().expect("rate limiter lock");
+        match buckets.get(key) {
+            Some((tokens, last)) => {
+                let elapsed = now.saturating_duration_since(*last).as_secs_f64();
+                (*tokens + elapsed * self.rate).min(self.burst) >= 1.0
+            }
+            None => true,
+        }
+    }
+
     fn allow_at(&self, key: &str, now: Instant) -> bool {
         let mut buckets = self.buckets.lock().expect("rate limiter lock");
         let (tokens, last) = buckets.entry(key.to_string()).or_insert((self.burst, now));

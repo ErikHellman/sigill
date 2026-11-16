@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT o.id, o.app_id, a.webhook_url, o.payload, o.attempts\n             FROM webhook_outbox o JOIN apps a ON a.id = o.app_id\n             WHERE o.next_attempt_at <= ? ORDER BY o.next_attempt_at, o.id LIMIT ?",
+  "query": "SELECT o.id, o.app_id, a.webhook_url, a.webhook_secret_version, o.payload, o.attempts\n             FROM webhook_outbox o JOIN apps a ON a.id = o.app_id\n             WHERE o.next_attempt_at <= ? ORDER BY o.next_attempt_at, o.id LIMIT ?",
   "describe": {
     "columns": [
       {
@@ -37,8 +37,19 @@
         }
       },
       {
-        "name": "payload",
+        "name": "webhook_secret_version",
         "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "apps",
+            "name": "webhook_secret_version"
+          }
+        }
+      },
+      {
+        "name": "payload",
+        "ordinal": 4,
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -49,7 +60,7 @@
       },
       {
         "name": "attempts",
-        "ordinal": 4,
+        "ordinal": 5,
         "type_info": "Integer",
         "origin": {
           "Table": {
@@ -67,8 +78,9 @@
       false,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "4cf0a76469a09b3774254e94db007411bc0b4b1161d3b0531d84ce839b8ad97d"
+  "hash": "cdac3ab1b480411802eda5b926aba60ee63585c5b07d91d2f118d8f822ef2e41"
 }

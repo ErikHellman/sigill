@@ -55,6 +55,11 @@ fn cli() -> Command {
                         .arg(Arg::new("id").long("id").required(true)),
                 )
                 .subcommand(
+                    Command::new("rotate-webhook-secret")
+                        .about("Issue a new webhook signing secret for one app")
+                        .arg(Arg::new("id").long("id").required(true)),
+                )
+                .subcommand(
                     Command::new("set-webhook")
                         .about("Set or clear an app's webhook URL")
                         .arg(Arg::new("id").long("id").required(true))

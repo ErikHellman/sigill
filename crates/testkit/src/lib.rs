@@ -61,6 +61,8 @@ pub fn config() -> Config {
     c.streams.broadcast.default_from = Some("news@news.example.com".into());
     c.streams.broadcast.priority = 10;
     c.server.public_url = "https://sigill.test".into();
+    // Tests deliver to a fake server on loopback.
+    c.delivery.allow_private_mx = true;
     c
 }
 

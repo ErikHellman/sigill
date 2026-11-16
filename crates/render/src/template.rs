@@ -35,8 +35,13 @@ pub fn compile_mjml(src: &str) -> Result<String, TemplateError> {
     parsed.element.render(&opts).map_err(|e| TemplateError::Mjml(e.to_string()))
 }
 
+/// Work one render may do, in MiniJinja's instruction units. Ordinary templates use a few
+/// thousand; this stops a runaway loop from holding a thread.
+pub const RENDER_FUEL: u64 = 2_000_000;
+
 fn env() -> Environment<'static> {
     let mut env = Environment::new();
+    env.set_fuel(Some(RENDER_FUEL));
     // A missing variable is an error, not an empty string in someone's inbox.
     env.set_undefined_behavior(UndefinedBehavior::Strict);
     env
@@ -115,5 +120,9 @@ mod tests {
         let t = TemplateSource { subject: "{{ '' }}", html: "x", text: "x" };
         assert!(matches!(render(&t, &json!({})), Err(TemplateError::EmptySubject)));
         assert!(compile_mjml("<mjml><mj-body>").is_err());
+        // A runaway loop runs out of fuel instead of holding the thread.
+        let looping = "{% for a in range(100000) %}{% for b in range(100000) %}x{% endfor %}{% endfor %}";
+        let t = TemplateSource { subject: "ok", html: "x", text: looping };
+        assert!(matches!(render(&t, &json!({})), Err(TemplateError::Template { part: "text", .. })));
     }
 }

@@ -91,7 +91,7 @@ One Cargo workspace, async on Tokio, SQLite compiled into the binary. Fast incre
 
 Choices made while building that refine or deviate from the sections above.
 
-- **Secrets from one master key.** `SIGILL_MASTER_KEY` (or `secrets.master_key_file`) is the only stored secret besides DKIM keys and the admin password. The API key pepper, the VERP HMAC key, the unsubscribe-token key and each app's webhook signing secret are derived from it with HMAC-SHA256 and a label, so `apps` has no `webhook_secret` column and nothing secret is in the database.
+- **Secrets from one master key.** `SIGILL_MASTER_KEY` (or `secrets.master_key_file`) is the only stored secret besides DKIM keys and the admin password. The API key pepper, the VERP HMAC key, the unsubscribe-token key and each app's webhook signing secret are derived from it with HMAC-SHA256 and a label, so `apps` has no `webhook_secret` column and nothing secret is in the database. The webhook label includes `apps.webhook_secret_version`, so `sigill app rotate-webhook-secret` rotates one app's secret without touching the master key.
 - **DKIM private keys are PEM files on disk** (`<dkim_key_dir>/<selector>r.pem` for RSA and `<selector>e.pem` for Ed25519, written by `sigill dkim-keygen`). `sending_domains` holds only public keys, so no key encryption scheme is needed.
 - **Sending domains and IP pools come from the config file** and are mirrored into `sending_domains` and `ip_pools` at startup.
 - **Extra crates:** `crates/webhook` (webhook worker, keeps `reqwest` out of the API) and `crates/testkit` (fake SMTP server and test helpers).
@@ -102,16 +102,27 @@ Choices made while building that refine or deviate from the sections above.
 - **Rate-limit replies** (421 or 4.7.x mentioning rate) put the recipient domain into a 10-minute backoff in `domain_throttle.backoff_until`, and the dispatcher skips that domain while claiming.
 - **Opportunistic TLS accepts any certificate**, as other MTAs do. With an MTA-STS `enforce` policy only WebPKI-verified TLS to an allowed MX is used, never plain text.
 - **Asynchronous bounces** only change deliveries that are still `sent`, so a repeated bounce counts once. A permanent failure that is not a bad address (policy, full mailbox) is a soft bounce: the delivery becomes `bounced` and the address is counted towards the 5-in-30-days rule. `delayed` DSNs and auto-replies are accepted and ignored. Non-standard bounces are classified from the first enhanced status code in the text, else from well-known phrases.
-- **Complaints** suppress the address with scope `all` and revoke its consents in the sending app. The delivery is found from a VERP address in the report (envelope or the original's `Return-Path`), else from the original `Message-ID` (`<message id>@<from domain>`) plus `Original-Rcpt-To`, or the message's only delivery.
+- **Complaints** suppress the address with scope `all` and revoke its consents in the sending app. The delivery is found from a VERP address in the report (envelope or the original's `Return-Path`), else from a signed message-level VERP address plus `Original-Rcpt-To`. The original `Message-ID` (`<message id>@<from domain>`) is unsigned and the complaint address takes mail from anyone, so it is trusted only for a message with a single delivery (this is what Microsoft JMRP needs); otherwise one recipient could report another.
 - **Webhook signature:** `Sigill-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<body>")>`. Retries back off from 30 s, doubling up to 6 h, and the event is dropped after `webhooks.max_attempts`.
 - **Broadcast materialisation:** when a broadcast starts, the scheduler queues one message per audience member (consent for the list, segment match, not suppressed) with idempotency key `broadcast:<id>:<contact id>`, so resuming after a restart never sends twice. Member *i* gets `not_before = started_at + i × (1 h / broadcast.max_per_hour)`; the limit is per broadcast. Templates see `contact.{email,name,attributes}` plus the broadcast's variables, and every broadcast-stream message gets `unsubscribe_url`. Only draft or scheduled broadcasts can be cancelled.
 - **Unsubscribe:** `GET /u/{token}` shows a confirmation form and changes nothing (link scanners prefetch); `POST /u/{token}` (RFC 8058 one-click, and the form) suppresses the address with scope `broadcast`, revokes all its consents in the app and records an `unsubscribed` event once.
 - **Contacts** are stored with normalised addresses; `GET /v1/contacts?email=` looks one up.
-- **DMARC aggregate reports** arrive at `<bounce.dmarc_local_part>@<bounce domain>` (put that in the `rua=` tag). XML, gzip and zip attachments are read with `quick-xml` and `miniz_oxide` (a minimal gzip/zip reader instead of the `flate2` and `zip` crates, for build speed), capped at 32 MiB decompressed, and stored once per `(org_name, report_id)`.
+- **DMARC aggregate reports** arrive at `<bounce.dmarc_local_part>@<bounce domain>` (put that in the `rua=` tag). XML, gzip and zip attachments are read with `quick-xml` and `miniz_oxide` (a minimal gzip/zip reader instead of the `flate2` and `zip` crates, for build speed), capped at 32 MiB decompressed, and stored once per `(org_name, report_id)`. The address is public, so intake is limited: at most 4 attachments and 48 MiB decompressed per email, 10 000 records per report, parsing on a blocking thread, and only reports whose policy domain is a configured sending domain (or a parent of one) are stored.
 - **`sigill dns-check`** checks SPF on the return-path domain (that is the domain SPF evaluates), both DKIM selectors against the keys on disk, DMARC on the domain or its organizational domain (last two labels), the bounce domain's MX against `bounce.hostname`, and forward-confirmed PTR for every source IP. It exits non-zero on any failure and records `sending_domains.verified_at` for domains without failures.
-- **Admin UI** lives under `/admin` on the API listener, behind HTTP basic auth with `SIGILL_ADMIN_PASSWORD` (any user name); without a password it answers 404. Form posts must be same-origin (`Sec-Fetch-Site`/`Origin`), since browsers resend basic-auth credentials. The DNS page lists the exact records to publish, built from the config and the DKIM keys on disk.
+- **Admin UI** lives under `/admin` on the API listener, behind HTTP basic auth with `SIGILL_ADMIN_PASSWORD` (any user name); without a password it answers 404. Form posts must be same-origin (`Sec-Fetch-Site`/`Origin`), since browsers resend basic-auth credentials. The DNS page lists the exact records to publish, built from the config and the DKIM keys on disk. Failed logins are counted per client address (the proxy's `X-Forwarded-For`) and in total, and answered with 429 after 10 per client or 200 overall in 15 minutes; `serve` refuses an admin password shorter than 16 characters. The runbook restricts `/admin` to the owner's addresses in the reverse proxy.
 - **Health alerts as Vaka issues.** Vaka alert rules trigger on issues, not metrics, so the maintenance job checks the queue backlog, the last hour's bounce rate and per-domain deferrals every 15 minutes against `[alerts]` thresholds and logs a fixed error message for each problem; the Vaka layer turns these into issues that `new_issue`/`regression`/`spike` rules can notify on.
 - **Deployment:** `Dockerfile` builds a static musl binary on Alpine; `docker-compose.prod.yml` uses host networking. `serve` applies migrations itself.
+- **Security hardening (review of 2026-11-15).**
+  - Line endings: rendered bodies and the SMTP DATA stream turn every bare CR or LF into CRLF and drop other control characters, so template variables cannot smuggle a second message.
+  - API keys: the key cache remembers the stored hash, so `rotate-key` takes effect at once. At most 4 Argon2 checks run at a time and failed checks are rate limited per app id.
+  - Delivery: MX hosts on loopback, private and other non-public addresses are refused with a permanent failure unless `delivery.allow_private_mx` is set (tests only). SMTP replies and MTA-STS policy bodies are read with a 64 kB cap. Pooled connections verified under MTA-STS are keyed by MX host name.
+  - Bounce listener: at most `max_connections / 5` (1 to 10) connections per client address, 10 minutes and 200 commands per session.
+  - Suppressions: `DELETE /v1/suppressions/{address}` lifts manual and bounce entries only; complaint and unsubscribe entries answer 409 and are removed in the admin UI.
+  - DKIM: `From`, `To`, `Subject`, `Date`, `Message-ID` and `Reply-To` are over-signed, and signatures expire after 14 days (`x=`).
+  - Webhook URLs must be `https` (plain `http` only to localhost).
+  - Addresses are ASCII only (no SMTPUTF8; IDN domains in punycode). `Reply-To` must be one valid address. Template rendering has a MiniJinja fuel limit.
+  - Retention also deletes message records with their deliveries after `retention.message_days` (default 395) and DMARC reports after `retention.event_days`.
+  - Dependencies: `cargo audit` runs in CI. Two advisories are accepted in `.cargo/audit.toml` because no fix can be taken yet: `rsa` (RUSTSEC-2023-0071, needed by mail-auth's pure-Rust backend) and `libsqlite3-sys` (RUSTSEC-2026-0459, sqlx 0.9.0 caps it below the fixed 0.39).
 - **Telemetry goes through hooks in `sigill_core::telemetry`** (`track`, `capture_error`), installed by the binary with Vaka's functions, so library crates don't depend on `vaka-sdk`.
 
 ## Data model
@@ -140,7 +151,7 @@ One SQLite file holds everything, including the queue. Tables use `STRICT` mode;
 - Queue: the dispatcher selects due rows (`status = 'queued' AND next_attempt_at <= ?`, ordered by priority then time), marks them `sending` in the same write transaction, and hands them to workers. On startup it resets any `sending` rows back to `queued` (crash recovery).
 - Connection setup: WAL mode, `busy_timeout = 5000`, `synchronous = NORMAL`, `foreign_keys = ON`, `auto_vacuum = INCREMENTAL`. One writer pool with a single connection plus a separate read pool; keep write transactions short and batch event inserts.
 - Indexes on `deliveries(status, next_attempt_at, priority)`, `delivery_events(delivery_id)` and `suppressions(address)`.
-- Retention: delete message bodies after 30 days and events after 13 months (both configurable), then run an incremental vacuum.
+- Retention: delete message bodies after 30 days, and events, DMARC reports and message records (with their deliveries) after 13 months (all configurable), then run an incremental vacuum.
 - The database file lives on local SSD, never on network storage.
 
 ## Component specs
@@ -152,7 +163,7 @@ One SQLite file holds everything, including the queue. Tables use `STRICT` mode;
 - `GET /v1/messages/{id}`: status per recipient.
 - `POST /v1/broadcasts`, `POST /v1/broadcasts/{id}/send`, `GET /v1/broadcasts/{id}`.
 - `PUT /v1/templates/{key}`: upload a new version. `POST /v1/templates/{key}/preview` renders with sample variables.
-- `GET/DELETE /v1/suppressions/{address}`; contacts CRUD and consent endpoints.
+- `GET/DELETE /v1/suppressions/{address}` (delete lifts manual and bounce entries only); contacts CRUD and consent endpoints.
 - Auth: `Authorization: Bearer <api key>`, stored as an argon2 hash. Per-app rate limit.
 - Validation: syntax-check every address and reject suppressed ones up front, returning them in the response as `suppressed`.
 

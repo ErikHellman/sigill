@@ -1,4 +1,4 @@
-//! Reuse of open SMTP connections per (MX address, source IP, TLS policy).
+//! Reuse of open SMTP connections per (MX address, source IP, verified host name).
 
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -11,7 +11,9 @@ use crate::client::SmtpClient;
 pub struct PoolKey {
     pub addr: SocketAddr,
     pub source: Option<Ipv4Addr>,
-    pub verified_tls: bool,
+    /// The MX host name the certificate was verified against (MTA-STS `enforce`), or
+    /// `None` for opportunistic connections.
+    pub verified_host: Option<String>,
 }
 
 pub struct Pool {

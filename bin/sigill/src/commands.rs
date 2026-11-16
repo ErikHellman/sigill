@@ -43,10 +43,13 @@ pub async fn app(config: &Config, m: &ArgMatches) -> anyhow::Result<()> {
             let id = sigill_core::new_id();
             let (key, hash) = sigill_api::auth::generate_key(&id, &pepper);
             let webhook = m.get_one::<String>("webhook-url").map(String::as_str);
+            if let Some(url) = webhook {
+                check_webhook_url(url)?;
+            }
             store.create_app(&id, name, &hash, webhook, stream).await?;
             println!("app id:          {id}");
             println!("API key:         {key}");
-            println!("webhook secret:  {}", secrets.webhook_secret(&id));
+            println!("webhook secret:  {}", secrets.webhook_secret(&id, 0));
             println!("\nThe API key is shown only once; store it in your app's secrets.");
         }
         Some(("list", _)) => {
@@ -64,7 +67,7 @@ pub async fn app(config: &Config, m: &ArgMatches) -> anyhow::Result<()> {
             let id = m.get_one::<String>("id").expect("required");
             let (key, hash) = sigill_api::auth::generate_key(id, &pepper);
             store.set_app_key_hash(id, &hash).await?;
-            println!("new API key: {key}\n(restart `sigill serve` to drop cached old keys)");
+            println!("new API key: {key}\nThe old key stops working at once.");
         }
         Some(("set-webhook", m)) => {
             let id = m.get_one::<String>("id").expect("required");
@@ -72,12 +75,34 @@ pub async fn app(config: &Config, m: &ArgMatches) -> anyhow::Result<()> {
             if url.is_none() && !m.get_flag("clear") {
                 bail!("give --url or --clear");
             }
+            if let Some(url) = url {
+                check_webhook_url(url)?;
+            }
             store.set_app_webhook(id, url).await?;
-            println!("webhook updated; signing secret: {}", secrets.webhook_secret(id));
+            let app = store.get_app(id).await?.context("no such app")?;
+            println!(
+                "webhook updated; signing secret: {}",
+                secrets.webhook_secret(id, app.webhook_secret_version)
+            );
+        }
+        Some(("rotate-webhook-secret", m)) => {
+            let id = m.get_one::<String>("id").expect("required");
+            let version = store.bump_webhook_secret_version(id).await?;
+            println!("new webhook signing secret: {}", secrets.webhook_secret(id, version));
+            println!("Events are signed with it from now on; update the receiving app.");
         }
         _ => unreachable!("subcommand required"),
     }
     store.close().await;
+    Ok(())
+}
+
+fn check_webhook_url(url: &str) -> anyhow::Result<()> {
+    if !sigill_webhook::webhook_url_allowed(url) {
+        bail!(
+            "webhook URLs must be https (events carry recipient addresses); http is only allowed to localhost"
+        );
+    }
     Ok(())
 }
 

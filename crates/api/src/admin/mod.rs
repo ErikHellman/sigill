@@ -1,5 +1,7 @@
 //! The admin UI: server-rendered pages behind HTTP basic auth with `SIGILL_ADMIN_PASSWORD`.
-//! Without a password the admin routes answer 404.
+//! Without a password the admin routes answer 404. Wrong passwords are counted per client
+//! (and overall) and answered with 429 once a limit is reached, so the password cannot be
+//! guessed at speed; see [`LoginThrottle`].
 
 use askama::Template;
 use axum::Form;
@@ -17,8 +19,13 @@ use sigill_core::{Stream, SuppressionReason, SuppressionScope};
 
 use crate::AppState;
 
+pub(crate) mod throttle;
 mod time;
+pub use throttle::LoginThrottle;
 pub use time::format_ms;
+
+/// Passwords shorter than this are refused at startup.
+pub const MIN_ADMIN_PASSWORD_LEN: usize = 16;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -51,7 +58,19 @@ impl FromRequestParts<AppState> for Admin {
             .and_then(|b| base64::engine::general_purpose::STANDARD.decode(b.trim()).ok())
             .and_then(|raw| String::from_utf8(raw).ok())
             .and_then(|s| s.split_once(':').map(|(_, p)| p.to_string()));
-        if !given.is_some_and(|g| ct_eq(g.as_bytes(), password.as_bytes())) {
+        let throttle = &state.inner.admin_logins;
+        let client = throttle::client_key(parts);
+        if throttle.blocked(&client) {
+            return Err(
+                (StatusCode::TOO_MANY_REQUESTS, "too many failed logins; try again later").into_response()
+            );
+        }
+        if !given.as_ref().is_some_and(|g| ct_eq(g.as_bytes(), password.as_bytes())) {
+            // A request without credentials is the browser asking for the prompt, not a guess.
+            if given.is_some() {
+                throttle.record_failure(&client);
+                tracing::warn!("admin login failed");
+            }
             let mut res = (StatusCode::UNAUTHORIZED, "authentication required").into_response();
             res.headers_mut()
                 .insert(header::WWW_AUTHENTICATE, HeaderValue::from_static("Basic realm=\"sigill admin\""));

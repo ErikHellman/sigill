@@ -178,6 +178,9 @@ pub struct DeliveryConfig {
     pub pool_max_messages: u32,
     /// Fetch and enforce MTA-STS policies.
     pub mta_sts: bool,
+    /// Deliver to MX hosts on loopback, private and other non-public addresses. Off in
+    /// production, so a recipient domain cannot point Sigill at internal hosts.
+    pub allow_private_mx: bool,
 }
 
 impl Default for DeliveryConfig {
@@ -193,6 +196,7 @@ impl Default for DeliveryConfig {
             pool_idle_secs: 30,
             pool_max_messages: 100,
             mta_sts: true,
+            allow_private_mx: false,
         }
     }
 }
@@ -260,13 +264,17 @@ impl Default for WebhookConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RetentionConfig {
+    /// Rendered message bodies are cleared after this many days.
     pub message_body_days: i64,
+    /// Delivery events and DMARC reports are deleted after this many days.
     pub event_days: i64,
+    /// Message records (subject, recipients, delivery status) are deleted after this many days.
+    pub message_days: i64,
 }
 
 impl Default for RetentionConfig {
     fn default() -> Self {
-        Self { message_body_days: 30, event_days: 395 }
+        Self { message_body_days: 30, event_days: 395, message_days: 395 }
     }
 }
 

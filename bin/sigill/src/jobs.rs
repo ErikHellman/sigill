@@ -74,10 +74,12 @@ pub async fn maintenance(store: Store, config: Arc<Config>, token: CancellationT
         if ticks >= RETENTION_EVERY {
             ticks = 0;
             let r = &config.retention;
-            match store.run_retention(r.message_body_days, r.event_days).await {
+            match store.run_retention(r.message_body_days, r.event_days, r.message_days).await {
                 Ok(rep) => tracing::info!(
                     bodies_cleared = rep.bodies_cleared,
                     events_deleted = rep.events_deleted,
+                    messages_deleted = rep.messages_deleted,
+                    dmarc_reports_deleted = rep.dmarc_reports_deleted,
                     "retention run"
                 ),
                 Err(e) => {

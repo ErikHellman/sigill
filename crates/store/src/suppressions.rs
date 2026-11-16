@@ -83,6 +83,29 @@ impl Store {
         Ok(r.rows_affected())
     }
 
+    /// Remove the suppressions an app may lift itself: manual entries and bounces.
+    /// Complaints and unsubscribes are the recipient's own decision and stay. Returns
+    /// `(removed, kept)` row counts.
+    pub async fn remove_liftable_suppressions(&self, address: &str) -> Result<(u64, u64)> {
+        let mut tx = self.write.begin().await?;
+        let removed = sqlx::query!(
+            "DELETE FROM suppressions WHERE address = ? AND reason IN ('manual', 'hard_bounce', 'soft_bounce')",
+            address
+        )
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        sqlx::query!("DELETE FROM soft_bounces WHERE address = ?", address).execute(&mut *tx).await?;
+        let kept = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "n!: i64" FROM suppressions WHERE address = ?"#,
+            address
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok((removed, kept as u64))
+    }
+
     pub async fn get_suppressions(&self, address: &str) -> Result<Vec<Suppression>> {
         let rows = sqlx::query_as!(
             Row,

@@ -11,6 +11,10 @@ FROM alpine:3.22
 RUN apk add --no-cache ca-certificates tzdata \
  && addgroup -S sigill && adduser -S -G sigill -h /var/lib/sigill sigill
 COPY --from=build /sigill /usr/local/bin/sigill
+# The bounce listener binds port 25 as the unprivileged user: give the binary that one
+# capability (the container still needs NET_BIND_SERVICE in its bounding set).
+RUN (apk add --no-cache libcap-setcap || apk add --no-cache libcap) \
+ && setcap cap_net_bind_service=+ep /usr/local/bin/sigill
 USER sigill
 WORKDIR /var/lib/sigill
 ENTRYPOINT ["/usr/local/bin/sigill"]

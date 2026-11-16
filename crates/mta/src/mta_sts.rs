@@ -84,6 +84,9 @@ pub fn parse_txt(records: &[String]) -> Option<String> {
     })
 }
 
+/// Largest policy file accepted (RFC 8461 suggests 64 kB).
+pub const MAX_POLICY_BYTES: usize = 64 * 1024;
+
 /// Fetches policy files over HTTPS.
 pub trait PolicyFetcher: Send + Sync {
     fn fetch(&self, domain: &str) -> BoxFut<'_, Result<String, String>>;
@@ -110,11 +113,16 @@ impl PolicyFetcher for HttpsFetcher {
             if !res.status().is_success() {
                 return Err(format!("HTTP {}", res.status()));
             }
-            let bytes = res.bytes().await.map_err(|e| e.to_string())?;
-            if bytes.len() > 64 * 1024 {
-                return Err("policy too large".into());
+            // Read in chunks so an endless body is cut off at the limit, not buffered.
+            let mut res = res;
+            let mut body = Vec::new();
+            while let Some(chunk) = res.chunk().await.map_err(|e| e.to_string())? {
+                if body.len() + chunk.len() > MAX_POLICY_BYTES {
+                    return Err("policy too large".into());
+                }
+                body.extend_from_slice(&chunk);
             }
-            String::from_utf8(bytes.to_vec()).map_err(|e| e.to_string())
+            String::from_utf8(body).map_err(|e| e.to_string())
         })
     }
 }
